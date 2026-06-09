@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jeans_hunter_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jeans_hunter
+      POSTGRES_PASSWORD: jeans_dev_pwd
+      POSTGRES_DB: jeans_hunter
+    ports:
+      - "5434:5432"
+    volumes:
+      - jeans_hunter_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jeans_hunter -d jeans_hunter"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  jeans_hunter_pgdata:

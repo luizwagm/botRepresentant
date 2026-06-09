@@ -1,0 +1,145 @@
+// jeans_hunter v1.0 — schema inicial
+// Lead = loja prospectada via Google Places (com qualificacao adaptada)
+// Product = mercadoria cadastrada pra catalogo
+// MessageLog = historico de mensagens enviadas (auditoria + LGPD)
+// User = usuario do painel (multi-user, papel ADMIN/VENDEDOR)
+// AuditLog = trilha de auditoria de todas as acoes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FunnelStage {
+  NOVO_LEAD
+  MENSAGEM_ENVIADA
+  RESPONDEU
+  EM_NEGOCIACAO
+  CATALOGO_ENVIADO
+  PEDIDO_FEITO
+  CLIENTE
+  SEM_RESPOSTA
+  RECUSOU
+  PAUSADO
+}
+
+enum StoreType {
+  MODA       // loja generica de roupa
+  FEMININA   // moda feminina
+  MASCULINA  // moda masculina
+  JEANS      // especializada em jeans
+  MULTIMARCA // loja multimarca
+  MISTA      // varios publicos
+  OUTROS
+}
+
+model Lead {
+  id              String       @id @default(cuid())
+  placeId         String       @unique @map("place_id")
+  name            String
+  city            String
+  state           String       @db.Char(2)
+  address         String?
+  phone           String?
+  whatsapp        String?      // extraido de wa.me ou normalizado do phone
+  instagram       String?      // extraido do websiteUri quando for instagram.com
+  website         String?
+  lat             Float?
+  lng             Float?
+  rating          Float?
+  reviewCount     Int?         @map("review_count")
+  storeType       StoreType    @default(OUTROS) @map("store_type")
+  responsibleName String?      @map("responsible_name") // preenchimento manual
+  foundedAt       DateTime?    @map("founded_at")        // tempo de existencia (manual ou via CNPJ na v1.5)
+  funnelStage     FunnelStage  @default(NOVO_LEAD) @map("funnel_stage")
+  notes           String?      @db.Text
+  optOut          Boolean      @default(false) @map("opt_out")
+  optOutAt        DateTime?    @map("opt_out_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  messages        MessageLog[]
+
+  @@index([city, state])
+  @@index([state])
+  @@index([storeType])
+  @@index([funnelStage])
+  @@map("leads")
+}
+
+model MessageLog {
+  id        String   @id @default(cuid())
+  leadId    String   @map("lead_id")
+  channel   String   // "whatsapp" | "instagram" | "email"
+  message   String   @db.Text
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("message_logs")
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?  @db.Text
+  images            String[] // paths/URLs das fotos (frente/costas/lateral/detalhe/etiqueta)
+  videos            String[] // paths/URLs de videos curtos (360, peca em movimento)
+  sizes             String[] // ["36", "38", "40"...]
+  wholesalePriceMin Float?   @map("wholesale_price_min")
+  wholesalePriceMax Float?   @map("wholesale_price_max")
+  retailPrice       Float?   @map("retail_price") // ancoragem ("varejo R$X, seu atacado R$Y")
+  tags              String[] // ["feminino", "skinny", "jeans escuro"]
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("products")
+}
+
+enum Role {
+  ADMIN
+  VENDEDOR
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  name         String?
+  role         Role       @default(VENDEDOR)
+  active       Boolean    @default(true)
+  lastLoginAt  DateTime?  @map("last_login_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  actorEmail String?  @map("actor_email") // snapshot — sobrevive se o usuario for excluido
+  action     String   // LOGIN, LOGIN_FALHOU, LOGOUT, CRIAR, ATUALIZAR, EXCLUIR, MENSAGEM, BUSCA, FUNIL
+  entityType String?  @map("entity_type") // Lead, Product, User, Message, ...
+  entityId   String?  @map("entity_id")
+  summary    String   @db.Text
+  changes    Json?    // { campo: { from, to } } ou metadados
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
