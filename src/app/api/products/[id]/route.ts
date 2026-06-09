@@ -18,6 +18,8 @@ const TRACKED = [
   "wholesalePriceMax",
   "retailPrice",
   "active",
+  "minOrderQty",
+  "readyToShip",
 ] as const;
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +40,8 @@ type PatchBody = {
   retailPrice?: number | null;
   tags?: string[];
   active?: boolean;
+  minOrderQty?: number | null;
+  readyToShip?: boolean;
 };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -61,6 +65,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.wholesalePriceMax !== undefined) data.wholesalePriceMax = body.wholesalePriceMax;
   if (body.retailPrice !== undefined) data.retailPrice = body.retailPrice;
   if (body.active !== undefined) data.active = body.active;
+  if (body.minOrderQty !== undefined) data.minOrderQty = body.minOrderQty ?? 10;
+  if (body.readyToShip !== undefined) data.readyToShip = body.readyToShip;
 
   try {
     const updated = await prisma.product.update({ where: { id }, data });

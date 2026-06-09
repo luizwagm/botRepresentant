@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="L. Augusto Atacado">
+  <defs>
+    <linearGradient id="laDenim" x1="10" y1="6" x2="86" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2A3B61"/>
+      <stop offset="1" stop-color="#1B2A4A"/>
+    </linearGradient>
+    <linearGradient id="laGold" x1="48" y1="22" x2="48" y2="74" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D9BC78"/>
+      <stop offset="1" stop-color="#C8A55B"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="92" height="92" rx="22" fill="url(#laDenim)"/>
+  <rect x="6.5" y="6.5" width="83" height="83" rx="17.5" fill="none" stroke="url(#laGold)" stroke-width="1.6"/>
+  <path d="M28 26 h11 v32 h13 v12 H28 Z" fill="#F4EFE6"/>
+  <path d="M65 26 h6 l11 44 h-9 l-2.3 -9.2 h-5.4 l-2.3 9.2 h-9 Z M65.8 57 h4.4 L68 40 Z" fill="url(#laGold)" fill-rule="evenodd"/>
+</svg>

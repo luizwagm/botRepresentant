@@ -96,6 +96,8 @@ model Product {
   retailPrice       Float?   @map("retail_price") // ancoragem ("varejo R$X, seu atacado R$Y")
   tags              String[] // ["feminino", "skinny", "jeans escuro"]
   active            Boolean  @default(true)
+  minOrderQty       Int      @default(10) @map("min_order_qty")  // pedido minimo por produto
+  readyToShip       Boolean  @default(true) @map("ready_to_ship") // pronta-entrega
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 

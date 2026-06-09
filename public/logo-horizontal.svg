@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 140" role="img" aria-label="L. Augusto Atacado">
+  <defs>
+    <linearGradient id="hDenim" x1="20" y1="28" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2A3B61"/>
+      <stop offset="1" stop-color="#1B2A4A"/>
+    </linearGradient>
+    <linearGradient id="hGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D9BC78"/>
+      <stop offset="1" stop-color="#C8A55B"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="140" fill="#F4EFE6"/>
+  <g transform="translate(24,30)">
+    <rect x="0" y="0" width="80" height="80" rx="19" fill="url(#hDenim)"/>
+    <rect x="3.8" y="3.8" width="72.4" height="72.4" rx="15.5" fill="none" stroke="url(#hGold)" stroke-width="1.3"/>
+    <g transform="translate(40,40) scale(0.74) translate(-48,-48)">
+      <path d="M28 26 h11 v32 h13 v12 H28 Z" fill="#F4EFE6"/>
+      <path d="M65 26 h6 l11 44 h-9 l-2.3 -9.2 h-5.4 l-2.3 9.2 h-9 Z M65.8 57 h4.4 L68 40 Z" fill="url(#hGold)" fill-rule="evenodd"/>
+    </g>
+  </g>
+  <text x="130" y="68" font-family="'Playfair Display', Georgia, serif" font-size="48" font-weight="700" letter-spacing="0.5" fill="#1B2A4A">L<tspan fill="#C8A55B">.</tspan> Augusto</text>
+  <line x1="132" y1="94" x2="448" y2="94" stroke="url(#hGold)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7 5"/>
+  <text x="132" y="116" font-family="'Jost', 'Montserrat', Arial, sans-serif" font-size="11" font-weight="500" letter-spacing="4.5" fill="#3C4456">ATACADO<tspan fill="#9AA1AE" font-weight="400" letter-spacing="2.5">  ·  DENIM DIRETO DE FÁBRICA</tspan></text>
+</svg>

@@ -1,10 +1,11 @@
 import Gallery from "./gallery";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
+import { normalizeBrazilPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "Catálogo — Jeans Direto do Agreste",
+  title: "Catálogo — L. Augusto Atacado",
 };
 
 export default async function GaleriaPublica() {
@@ -27,9 +28,11 @@ export default async function GaleriaPublica() {
           wholesalePriceMax: p.wholesalePriceMax,
           retailPrice: p.retailPrice,
           tags: p.tags,
+          minOrderQty: p.minOrderQty,
+          readyToShip: p.readyToShip,
         }))}
         brandName={env.brandName}
-        luizWhatsapp={env.luizWhatsapp}
+        luizWhatsapp={normalizeBrazilPhone(env.luizWhatsapp) ?? ""}
       />
     </div>
   );

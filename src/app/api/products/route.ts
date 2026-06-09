@@ -34,6 +34,8 @@ type CreateBody = {
   retailPrice?: number | null;
   tags?: string[];
   active?: boolean;
+  minOrderQty?: number | null;
+  readyToShip?: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -56,6 +58,8 @@ export async function POST(req: NextRequest) {
       retailPrice: body.retailPrice ?? null,
       tags: body.tags ?? [],
       active: body.active ?? true,
+      minOrderQty: body.minOrderQty ?? 10,
+      readyToShip: body.readyToShip ?? true,
     },
   });
 

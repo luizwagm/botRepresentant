@@ -28,9 +28,10 @@ export function normalizeBrazilPhone(raw: string | null | undefined): string | n
   return null;
 }
 
-export function whatsappLink(phoneE164: string | null | undefined, message: string): string | null {
-  if (!phoneE164) return null;
-  const normalized = phoneE164.startsWith("55") ? phoneE164 : normalizeBrazilPhone(phoneE164);
+export function whatsappLink(phoneRaw: string | null | undefined, message: string): string | null {
+  // Sempre normaliza (nao confiar em startsWith("55") — DDD 55/Santa Maria-RS
+  // tambem comeca com 55 e geraria numero sem codigo de pais).
+  const normalized = normalizeBrazilPhone(phoneRaw);
   if (!normalized) return null;
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }

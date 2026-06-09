@@ -10,6 +10,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Marca L. Augusto Atacado */
+  --color-brand-indigo: #1B2A4A;
+  --color-brand-gold: #C8A55B;
+  --color-brand-cream: #F4EFE6;
+  --color-brand-graphite: #3C4456;
+  --font-display: var(--font-playfair);
+  --font-kicker: var(--font-jost);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +31,54 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Conteudo rico (descricao de produto em HTML) — restaura formatacao que o
+   preflight do Tailwind zera. */
+.rich-text {
+  line-height: 1.65;
+}
+.rich-text p {
+  margin: 0.5em 0;
+}
+.rich-text b,
+.rich-text strong {
+  font-weight: 700;
+}
+.rich-text em,
+.rich-text i {
+  font-style: italic;
+}
+.rich-text u {
+  text-decoration: underline;
+}
+.rich-text ul {
+  list-style: disc;
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+}
+.rich-text ol {
+  list-style: decimal;
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+}
+.rich-text li {
+  margin: 0.2em 0;
+}
+.rich-text h1,
+.rich-text h2,
+.rich-text h3,
+.rich-text h4 {
+  font-weight: 700;
+  margin: 0.7em 0 0.3em;
+}
+.rich-text a {
+  color: #1b2a4a;
+  text-decoration: underline;
+}
+.rich-text blockquote {
+  border-left: 3px solid #c8a55b;
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: #3c4456;
 }

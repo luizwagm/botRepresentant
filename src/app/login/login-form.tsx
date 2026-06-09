@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import BrandLogo from "@/components/brand-logo";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -37,11 +38,8 @@ export default function LoginForm() {
       className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
     >
       <div className="mb-6">
-        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white font-semibold">
-          JH
-        </div>
-        <h1 className="text-xl font-semibold tracking-tight">Jeans Hunter</h1>
-        <p className="mt-1 text-sm text-zinc-500">Entre para acessar o painel.</p>
+        <BrandLogo variant="full" size="md" withTagline />
+        <p className="mt-4 text-sm text-zinc-500">Entre para acessar o painel.</p>
       </div>
 
       {error && (

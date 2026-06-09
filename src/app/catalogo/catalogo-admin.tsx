@@ -14,6 +14,8 @@ type Product = {
   retailPrice: number | null;
   tags: string[];
   active: boolean;
+  minOrderQty: number;
+  readyToShip: boolean;
   createdAt: string;
 };
 
@@ -31,6 +33,8 @@ type FormState = {
   retailPrice: string;
   tags: string;
   active: boolean;
+  minOrderQty: string;
+  readyToShip: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -44,6 +48,8 @@ const EMPTY_FORM: FormState = {
   retailPrice: "",
   tags: "",
   active: true,
+  minOrderQty: "10",
+  readyToShip: true,
 };
 
 export default function CatalogoAdmin() {
@@ -78,6 +84,8 @@ export default function CatalogoAdmin() {
       retailPrice: p.retailPrice?.toString() ?? "",
       tags: p.tags.join(", "),
       active: p.active,
+      minOrderQty: p.minOrderQty?.toString() ?? "10",
+      readyToShip: p.readyToShip ?? true,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -152,6 +160,8 @@ export default function CatalogoAdmin() {
       wholesalePriceMax: parseNum(form.wholesalePriceMax),
       retailPrice: parseNum(form.retailPrice),
       active: form.active,
+      minOrderQty: Math.max(1, parseInt(form.minOrderQty, 10) || 10),
+      readyToShip: form.readyToShip,
     };
     const res = form.id
       ? await fetch(`/api/products/${form.id}`, {
@@ -210,7 +220,9 @@ export default function CatalogoAdmin() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">Descrição</label>
+            <label className="mb-1 block text-xs font-medium text-zinc-700">
+              Descrição <span className="font-normal text-zinc-400">— aceita HTML (negrito, listas, links)</span>
+            </label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -341,6 +353,31 @@ export default function CatalogoAdmin() {
                 placeholder="149,90"
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-700">Pedido mínimo (peças)</label>
+              <input
+                type="number"
+                min={1}
+                value={form.minOrderQty}
+                onChange={(e) => setForm({ ...form, minOrderQty: e.target.value })}
+                placeholder="10"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.readyToShip}
+                  onChange={(e) => setForm({ ...form, readyToShip: e.target.checked })}
+                  className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Pronta-entrega (envio imediato)
+              </label>
             </div>
           </div>
 
