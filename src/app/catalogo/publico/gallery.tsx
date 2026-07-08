@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import BrandLogo from "@/components/brand-logo";
+import { PRODUCT_CATEGORIES } from "@/lib/categories";
 
 type PublicProduct = {
   id: string;
@@ -15,6 +16,7 @@ type PublicProduct = {
   wholesalePriceMax: number | null;
   retailPrice: number | null;
   tags: string[];
+  categories: string[];
   minOrderQty: number;
   readyToShip: boolean;
 };
@@ -28,8 +30,19 @@ function buildMedia(p: PublicProduct): Media[] {
   ];
 }
 
+let hookAdded = false;
 function sanitizeHtml(html: string): string {
   if (typeof window === "undefined") return "";
+  if (!hookAdded) {
+    // Todo <a> renderizado abre em nova aba com rel seguro (defesa em profundidade).
+    DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+      if (node.tagName === "A" && node.getAttribute("href")) {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener noreferrer nofollow");
+      }
+    });
+    hookAdded = true;
+  }
   return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
 }
 
@@ -70,6 +83,17 @@ export default function Gallery({
   luizWhatsapp: string;
 }) {
   const [selected, setSelected] = useState<PublicProduct | null>(null);
+  const [activeCat, setActiveCat] = useState<string | null>(null);
+
+  // Só aparecem categorias que têm ao menos 1 produto (ativo) cadastrado.
+  const presentCategories = useMemo(
+    () => PRODUCT_CATEGORIES.filter((c) => products.some((p) => p.categories.includes(c.slug))),
+    [products],
+  );
+  const visibleProducts = useMemo(
+    () => (activeCat ? products.filter((p) => p.categories.includes(activeCat)) : products),
+    [products, activeCat],
+  );
 
   return (
     <>
@@ -99,13 +123,49 @@ export default function Gallery({
           <strong className="text-zinc-900">Direto da fábrica, sem atravessador.</strong> Pedido mínimo e pronta-entrega informados em cada peça. Atendemos lojas em todo o Brasil.
         </div>
 
+        {presentCategories.length > 0 && (
+          <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
+            <button
+              type="button"
+              onClick={() => setActiveCat(null)}
+              aria-pressed={activeCat === null}
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                activeCat === null
+                  ? "border-brand-indigo bg-brand-indigo text-white"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              Todos
+            </button>
+            {presentCategories.map((c) => (
+              <button
+                key={c.slug}
+                type="button"
+                onClick={() => setActiveCat(c.slug)}
+                aria-pressed={activeCat === c.slug}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                  activeCat === c.slug
+                    ? "border-brand-indigo bg-brand-indigo text-white"
+                    : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-16 text-center text-zinc-500">
             Em breve: nosso catálogo de jeans direto do Agreste.
           </div>
+        ) : visibleProducts.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-12 text-center text-zinc-500">
+            Nenhum produto nesta categoria.
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {products.map((p) => {
+            {visibleProducts.map((p) => {
               const cover = p.images[0] ?? null;
               const coverVideo = !cover && p.videos[0] ? p.videos[0] : null;
               return (
@@ -229,152 +289,160 @@ function ProductModal({
   const orderMessage = `Olá Luiz! Vim pelo catálogo, tenho interesse em "${product.name}". Pode me passar mais informações?`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/70 p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex bg-zinc-900/70 sm:items-center sm:justify-center sm:p-4" onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
         tabIndex={-1}
-        className="grid max-h-[100vh] w-full max-w-5xl grid-cols-1 overflow-y-auto overscroll-contain rounded-none bg-white shadow-2xl focus:outline-none sm:max-h-[92vh] sm:rounded-2xl md:grid-cols-2"
+        className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-white shadow-2xl focus:outline-none sm:h-auto sm:max-h-[90dvh] sm:max-w-5xl sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Midia */}
-        <div className="relative flex items-center justify-center bg-zinc-900">
-          {current ? (
-            <>
-              {current.type === "image" ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={current.url}
-                  alt={product.name}
-                  className="aspect-square w-full bg-zinc-100 object-cover md:aspect-auto md:h-full"
-                />
-              ) : (
-                <video
-                  key={current.url}
-                  src={current.url}
-                  controls
-                  playsInline
-                  className="aspect-square w-full bg-black object-contain md:aspect-auto md:h-full"
-                />
-              )}
-              {count > 1 && (
-                <>
-                  <button
-                    onClick={() => setIdx((i) => (i - 1 + count) % count)}
-                    className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"
-                    aria-label="Anterior"
-                  >◀</button>
-                  <button
-                    onClick={() => setIdx((i) => (i + 1) % count)}
-                    className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"
-                    aria-label="Próxima"
-                  >▶</button>
-                  <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2">
-                    {media.map((m, i) => (
-                      <button
-                        key={`${m.type}-${i}`}
-                        onClick={() => setIdx(i)}
-                        aria-label={`Mídia ${i + 1}`}
-                        className="flex h-6 w-6 items-center justify-center"
-                      >
-                        <span className={`h-2 w-2 rounded-full ring-1 ring-zinc-400 ${i === idx ? "bg-indigo-600" : "bg-white/80"}`} />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {discount !== null && (
-                <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow">
-                  −{discount}% vs. varejo
-                </span>
-              )}
-              {current.type === "video" && (
-                <span className="absolute right-3 top-3 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                  vídeo
-                </span>
-              )}
-            </>
-          ) : (
-            <div className="flex aspect-square w-full items-center justify-center text-zinc-400">sem mídia</div>
-          )}
-        </div>
+        {/* Fechar — sempre visível (o painel em si não rola) */}
+        <button
+          onClick={onClose}
+          aria-label="Fechar"
+          className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg leading-none text-zinc-700 shadow hover:bg-white"
+        >✕</button>
 
-        {/* Detalhes */}
-        <div className="flex flex-col p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <h2 id="product-modal-title" className="text-xl font-bold tracking-tight text-zinc-900">{product.name}</h2>
-            <button onClick={onClose} className="shrink-0 rounded-md p-1 text-zinc-400 hover:bg-zinc-100" aria-label="Fechar">✕</button>
-          </div>
-
-          {product.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {product.tags.map((t) => (
-                <span key={t} className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">{t}</span>
-              ))}
-            </div>
-          )}
-
-          {/* Preco — ancoragem */}
-          <div className="mt-5 rounded-lg bg-zinc-50 p-4">
-            <div className="text-xs uppercase tracking-wide text-zinc-500">Preço atacado</div>
-            <div className="mt-1 text-2xl font-bold text-brand-indigo">{priceRange(product)}</div>
-            {product.retailPrice && (
-              <div className="mt-1 text-sm text-zinc-500">
-                <span className="line-through">Preço varejo de referência: {formatPrice(product.retailPrice)}</span>
-                {discount !== null && <span className="ml-2 font-medium text-emerald-700">({discount}% mais barato)</span>}
-              </div>
+        {/* Área rolável: mídia + detalhes */}
+        <div className="flex-1 overflow-y-auto overscroll-contain md:grid md:grid-cols-2">
+          {/* Mídia */}
+          <div className="relative flex items-center justify-center bg-zinc-900">
+            {current ? (
+              <>
+                {current.type === "image" ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={current.url}
+                    alt={product.name}
+                    className="aspect-square w-full bg-zinc-100 object-cover md:aspect-auto md:h-full"
+                  />
+                ) : (
+                  <video
+                    key={current.url}
+                    src={current.url}
+                    controls
+                    playsInline
+                    className="aspect-square w-full bg-black object-contain md:aspect-auto md:h-full"
+                  />
+                )}
+                {count > 1 && (
+                  <>
+                    <button
+                      onClick={() => setIdx((i) => (i - 1 + count) % count)}
+                      className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"
+                      aria-label="Anterior"
+                    >◀</button>
+                    <button
+                      onClick={() => setIdx((i) => (i + 1) % count)}
+                      className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"
+                      aria-label="Próxima"
+                    >▶</button>
+                    <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2">
+                      {media.map((m, i) => (
+                        <button
+                          key={`${m.type}-${i}`}
+                          onClick={() => setIdx(i)}
+                          aria-label={`Mídia ${i + 1}`}
+                          className="flex h-6 w-6 items-center justify-center"
+                        >
+                          <span className={`h-2 w-2 rounded-full ring-1 ring-zinc-400 ${i === idx ? "bg-indigo-600" : "bg-white/80"}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {discount !== null && (
+                  <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow">
+                    −{discount}% vs. varejo
+                  </span>
+                )}
+                {current.type === "video" && (
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                    vídeo
+                  </span>
+                )}
+              </>
+            ) : (
+              <div className="flex aspect-square w-full items-center justify-center text-zinc-400">sem mídia</div>
             )}
-            <div className="mt-3 text-xs font-medium text-zinc-600">Pedido mínimo: {product.minOrderQty} peças por modelo</div>
           </div>
 
-          {descHtml && (
-            <div
-              className="rich-text mt-4 text-sm text-zinc-700"
-              dangerouslySetInnerHTML={{ __html: descHtml }}
-            />
-          )}
+          {/* Detalhes */}
+          <div className="flex flex-col p-5 sm:p-6">
+            <h2 id="product-modal-title" className="pr-10 text-xl font-bold tracking-tight text-zinc-900">{product.name}</h2>
 
-          {product.sizes.length > 0 && (
-            <div className="mt-5">
-              <div className="text-xs font-semibold uppercase tracking-wide text-zinc-700">Tamanhos disponíveis</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {product.sizes.map((s) => (
-                  <span key={s} className="rounded-md border border-zinc-400 bg-white px-3 py-1 text-sm font-semibold text-zinc-900">{s}</span>
+            {product.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {product.tags.map((t) => (
+                  <span key={t} className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">{t}</span>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Confianca de compra */}
-          <ul className="mt-5 space-y-1.5 text-sm text-zinc-700">
-            <li className="flex items-start gap-2"><span className="text-emerald-600">✓</span> Direto da fábrica — Agreste/PE</li>
-            {product.readyToShip ? (
-              <li className="flex items-start gap-2"><span className="text-emerald-600">✓</span> Pronta-entrega — disponível pra envio imediato</li>
-            ) : (
-              <li className="flex items-start gap-2"><span className="text-amber-600">•</span> Sob encomenda — produção rápida</li>
             )}
-            <li className="flex items-start gap-2"><span className="text-emerald-600">✓</span> Tira dúvidas e ajusta grade pelo WhatsApp</li>
-          </ul>
 
-          <div className="mt-auto pt-6">
-            {luizWhatsapp ? (
-              <a
-                href={`https://wa.me/${luizWhatsapp}?text=${encodeURIComponent(orderMessage)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3.5 text-center text-base font-semibold text-white shadow-sm hover:bg-emerald-700"
-              >
-                <WhatsAppIcon className="h-5 w-5" />
-                Quero fazer pedido pelo WhatsApp
-              </a>
-            ) : (
-              <div className="rounded-md bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
-                Configure <code>LUIZ_WHATSAPP</code> no .env pra liberar o botão de pedido.
+            {/* Preco — ancoragem */}
+            <div className="mt-5 rounded-lg bg-zinc-50 p-4">
+              <div className="text-xs uppercase tracking-wide text-zinc-500">Preço atacado</div>
+              <div className="mt-1 text-2xl font-bold text-brand-indigo">{priceRange(product)}</div>
+              {product.retailPrice && (
+                <div className="mt-1 text-sm text-zinc-500">
+                  <span className="line-through">Preço varejo de referência: {formatPrice(product.retailPrice)}</span>
+                  {discount !== null && <span className="ml-2 font-medium text-emerald-700">({discount}% mais barato)</span>}
+                </div>
+              )}
+              <div className="mt-3 text-xs font-medium text-zinc-600">Pedido mínimo: {product.minOrderQty} peças por modelo</div>
+            </div>
+
+            {descHtml && (
+              <div
+                className="rich-text mt-4 text-sm text-zinc-700"
+                dangerouslySetInnerHTML={{ __html: descHtml }}
+              />
+            )}
+
+            {product.sizes.length > 0 && (
+              <div className="mt-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-700">Tamanhos disponíveis</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {product.sizes.map((s) => (
+                    <span key={s} className="rounded-md border border-zinc-400 bg-white px-3 py-1 text-sm font-semibold text-zinc-900">{s}</span>
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* Confianca de compra */}
+            <ul className="mt-5 space-y-1.5 text-sm text-zinc-700">
+              <li className="flex items-start gap-2"><span className="text-emerald-600">✓</span> Direto da fábrica — Agreste/PE</li>
+              {product.readyToShip ? (
+                <li className="flex items-start gap-2"><span className="text-emerald-600">✓</span> Pronta-entrega — disponível pra envio imediato</li>
+              ) : (
+                <li className="flex items-start gap-2"><span className="text-amber-600">•</span> Sob encomenda — produção rápida</li>
+              )}
+              <li className="flex items-start gap-2"><span className="text-emerald-600">✓</span> Tira dúvidas e ajusta grade pelo WhatsApp</li>
+            </ul>
           </div>
+        </div>
+
+        {/* Rodapé fixo — CTA sempre visível */}
+        <div className="shrink-0 border-t border-zinc-200 bg-white p-4">
+          {luizWhatsapp ? (
+            <a
+              href={`https://wa.me/${luizWhatsapp}?text=${encodeURIComponent(orderMessage)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3.5 text-center text-base font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              <WhatsAppIcon className="h-5 w-5" />
+              Quero fazer pedido pelo WhatsApp
+            </a>
+          ) : (
+            <div className="rounded-md bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+              Configure <code>LUIZ_WHATSAPP</code> no .env pra liberar o botão de pedido.
+            </div>
+          )}
         </div>
       </div>
     </div>

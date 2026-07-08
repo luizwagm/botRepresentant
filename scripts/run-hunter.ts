@@ -20,7 +20,7 @@ function parseArgs(): { city?: string; state?: string; wave?: string } {
 
 function printResult(r: HuntCityResult): void {
   console.log(
-    `  +${r.inserted} novos | ${r.updated} atualizados | ${r.total} candidatos | ` +
+    `  +${r.inserted} novos | ${r.skipped.alreadyListed} ja cadastradas | ${r.total} candidatos | ` +
       `skip: ${r.skipped.blacklist} atacado, ${r.skipped.quality} qualidade, ` +
       `${r.skipped.duplicate} duplicados`,
   );
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
   console.log(`\nHunter rodando em ${targets.length} cidade(s)...\n`);
   const t0 = Date.now();
   let totalInserted = 0;
-  let totalUpdated = 0;
+  let totalAlready = 0;
 
   for (const t of targets) {
     console.log(`[${t.name}/${t.state}]`);
@@ -52,7 +52,7 @@ async function main(): Promise<void> {
       const r = await huntCity(t.name, t.state);
       printResult(r);
       totalInserted += r.inserted;
-      totalUpdated += r.updated;
+      totalAlready += r.skipped.alreadyListed;
     } catch (e) {
       console.error(`  ! erro:`, e instanceof Error ? e.message : e);
     }
@@ -60,7 +60,7 @@ async function main(): Promise<void> {
 
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(
-    `\n=== Total: ${totalInserted} novos + ${totalUpdated} atualizados em ${secs}s ===\n`,
+    `\n=== Total: ${totalInserted} novos (${totalAlready} ja cadastradas ignoradas) em ${secs}s ===\n`,
   );
 
   await prisma.$disconnect();

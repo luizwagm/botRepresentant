@@ -95,6 +95,7 @@ model Product {
   wholesalePriceMax Float?   @map("wholesale_price_max")
   retailPrice       Float?   @map("retail_price") // ancoragem ("varejo R$X, seu atacado R$Y")
   tags              String[] // ["feminino", "skinny", "jeans escuro"]
+  categories        String[] // slugs curados (src/lib/categories.ts) — dirigem o menu do catalogo
   active            Boolean  @default(true)
   minOrderQty       Int      @default(10) @map("min_order_qty")  // pedido minimo por produto
   readyToShip       Boolean  @default(true) @map("ready_to_ship") // pronta-entrega

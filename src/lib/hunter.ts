@@ -1,4 +1,5 @@
 import type { StoreType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { textSearch, geocodeCity, type PlaceSearchResult } from "./places";
 import { normalizeBrazilPhone } from "./phone";
@@ -25,12 +26,12 @@ export type HuntCityResult = {
   state: string;
   total: number;
   inserted: number;
-  updated: number;
   skipped: {
     blacklist: number;
     quality: number;
     noPlaceId: number;
     duplicate: number;
+    alreadyListed: number; // ja estava no banco — nao lista de novo
   };
 };
 
@@ -62,8 +63,7 @@ export async function huntCity(city: string, state: string): Promise<HuntCityRes
     state,
     total: 0,
     inserted: 0,
-    updated: 0,
-    skipped: { blacklist: 0, quality: 0, noPlaceId: 0, duplicate: 0 },
+    skipped: { blacklist: 0, quality: 0, noPlaceId: 0, duplicate: 0, alreadyListed: 0 },
   };
 
   const geo = await geocodeCity(city, state);
@@ -129,44 +129,45 @@ export async function huntCity(city: string, state: string): Promise<HuntCityRes
       const whatsapp = waFromSite ?? phoneE164;
       const storeType: StoreType = classifyStoreType(name, kw);
 
+      // Loja ja listada NAO e listada de novo (nem atualizada) — pulamos.
       const existing = await prisma.lead.findUnique({
         where: { placeId: p.id },
         select: { id: true },
       });
+      if (existing) {
+        result.skipped.alreadyListed++;
+        continue;
+      }
 
-      await prisma.lead.upsert({
-        where: { placeId: p.id },
-        create: {
-          placeId: p.id,
-          name,
-          city,
-          state,
-          address: p.formattedAddress ?? null,
-          phone: rawPhone,
-          whatsapp,
-          instagram,
-          website: p.websiteUri ?? null,
-          lat: p.location?.latitude ?? null,
-          lng: p.location?.longitude ?? null,
-          rating: p.rating ?? null,
-          reviewCount: p.userRatingCount ?? null,
-          storeType,
-        },
-        update: {
-          name,
-          address: p.formattedAddress ?? null,
-          phone: rawPhone,
-          whatsapp,
-          instagram,
-          website: p.websiteUri ?? null,
-          rating: p.rating ?? null,
-          reviewCount: p.userRatingCount ?? null,
-          // NAO mexer em funnelStage, notes, responsibleName, optOut — sao do usuario.
-        },
-      });
-
-      if (existing) result.updated++;
-      else result.inserted++;
+      try {
+        await prisma.lead.create({
+          data: {
+            placeId: p.id,
+            name,
+            city,
+            state,
+            address: p.formattedAddress ?? null,
+            phone: rawPhone,
+            whatsapp,
+            instagram,
+            website: p.websiteUri ?? null,
+            lat: p.location?.latitude ?? null,
+            lng: p.location?.longitude ?? null,
+            rating: p.rating ?? null,
+            reviewCount: p.userRatingCount ?? null,
+            storeType,
+          },
+        });
+        result.inserted++;
+      } catch (e) {
+        // Corrida: outra busca simultanea inseriu o mesmo place_id entre o findUnique
+        // e o create — trata como ja listada (unique violation P2002), sem derrubar o run.
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+          result.skipped.alreadyListed++;
+          continue;
+        }
+        throw e;
+      }
     }
   }
 

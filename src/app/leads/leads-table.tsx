@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import LeadModal, { type Lead } from "@/components/lead-modal";
 import {
   BR_STATES,
@@ -10,7 +10,7 @@ import {
   STORE_TYPES,
   STORE_TYPE_LABEL,
 } from "@/lib/labels";
-import { ONDA_1_NORDESTE } from "@/lib/cities";
+import { BR_CITIES } from "@/lib/br-cities";
 
 type Filters = {
   city: string;
@@ -37,8 +37,7 @@ type HuntResult = {
   state: string;
   total: number;
   inserted: number;
-  updated: number;
-  skipped: { blacklist: number; quality: number; noPlaceId: number; duplicate: number };
+  skipped: { blacklist: number; quality: number; noPlaceId: number; duplicate: number; alreadyListed: number };
 };
 
 export default function LeadsTable() {
@@ -49,6 +48,11 @@ export default function LeadsTable() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Lead | null>(null);
   const [showHunt, setShowHunt] = useState(false);
+
+  const citiesForFilterState = useMemo(
+    () => (filters.state ? BR_CITIES.filter((c) => c.state === filters.state) : []),
+    [filters.state],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,21 +109,28 @@ export default function LeadsTable() {
             onChange={(e) => updateFilter("q", e.target.value)}
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
-          <input
-            type="text"
-            placeholder="Cidade"
-            value={filters.city}
-            onChange={(e) => updateFilter("city", e.target.value)}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
           <select
             value={filters.state}
-            onChange={(e) => updateFilter("state", e.target.value)}
+            onChange={(e) => {
+              setFilters((f) => ({ ...f, state: e.target.value, city: "" }));
+              setPage(1);
+            }}
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="">UF</option>
+            <option value="">UF (todas)</option>
             {BR_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            value={filters.city}
+            onChange={(e) => updateFilter("city", e.target.value)}
+            disabled={!filters.state}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50 disabled:text-zinc-400"
+          >
+            <option value="">{filters.state ? "Cidade (todas)" : "Escolha a UF primeiro"}</option>
+            {citiesForFilterState.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
             ))}
           </select>
           <select
@@ -287,6 +298,8 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<HuntResult | null>(null);
 
+  const citiesForState = useMemo(() => BR_CITIES.filter((c) => c.state === state), [state]);
+
   async function run() {
     if (!city.trim() || !state) {
       setError("Preencha cidade e estado.");
@@ -332,34 +345,35 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
 
         <div className="space-y-4 px-6 py-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">Cidade</label>
-            <input
-              type="text"
-              list="hunt-cities"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              disabled={running}
-              placeholder="ex.: Mossoró"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50"
-            />
-            <datalist id="hunt-cities">
-              {ONDA_1_NORDESTE.map((c) => (
-                <option key={`${c.name}-${c.state}`} value={c.name}>{c.name} / {c.state}</option>
-              ))}
-            </datalist>
-            <p className="mt-1 text-xs text-zinc-400">Sugestões da Onda 1 (Nordeste) aparecem ao digitar.</p>
-          </div>
-          <div>
             <label className="mb-1 block text-xs font-medium text-zinc-700">Estado (UF)</label>
             <select
               value={state}
-              onChange={(e) => setState(e.target.value)}
+              onChange={(e) => {
+                setState(e.target.value);
+                setCity("");
+              }}
               disabled={running}
               className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50"
             >
-              <option value="">Selecione...</option>
+              <option value="">Selecione a UF...</option>
               {BR_STATES.map((s) => (
                 <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-700">
+              Cidade <span className="font-normal text-zinc-400">(a partir de 20 mil habitantes)</span>
+            </label>
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              disabled={running || !state}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50"
+            >
+              <option value="">{state ? `Selecione a cidade (${citiesForState.length})...` : "Escolha a UF primeiro"}</option>
+              {citiesForState.map((c) => (
+                <option key={c.name} value={c.name}>{c.name} - {c.state}</option>
               ))}
             </select>
           </div>
@@ -377,7 +391,7 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
               <div className="font-medium">Busca concluída em {result.city}/{result.state}</div>
               <ul className="mt-1.5 space-y-0.5 text-emerald-700">
                 <li>✓ {result.inserted} lojas novas adicionadas</li>
-                <li>↻ {result.updated} já existentes atualizadas</li>
+                <li>↻ {result.skipped.alreadyListed} já cadastradas (ignoradas)</li>
                 <li className="text-emerald-600/80">
                   {result.skipped.blacklist} atacado/fábrica e {result.skipped.quality} de baixa qualidade filtradas
                 </li>

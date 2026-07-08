@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp, diffFields } from "@/lib/audit";
+import { CATEGORY_SLUGS } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,6 +15,7 @@ const TRACKED = [
   "videos",
   "sizes",
   "tags",
+  "categories",
   "wholesalePriceMin",
   "wholesalePriceMax",
   "retailPrice",
@@ -39,6 +41,7 @@ type PatchBody = {
   wholesalePriceMax?: number | null;
   retailPrice?: number | null;
   tags?: string[];
+  categories?: string[];
   active?: boolean;
   minOrderQty?: number | null;
   readyToShip?: boolean;
@@ -61,6 +64,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.videos !== undefined) data.videos = { set: body.videos };
   if (body.sizes !== undefined) data.sizes = { set: body.sizes };
   if (body.tags !== undefined) data.tags = { set: body.tags };
+  if (body.categories !== undefined) {
+    data.categories = { set: body.categories.filter((c) => CATEGORY_SLUGS.includes(c)) };
+  }
   if (body.wholesalePriceMin !== undefined) data.wholesalePriceMin = body.wholesalePriceMin;
   if (body.wholesalePriceMax !== undefined) data.wholesalePriceMax = body.wholesalePriceMax;
   if (body.retailPrice !== undefined) data.retailPrice = body.retailPrice;

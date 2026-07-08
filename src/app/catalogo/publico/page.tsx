@@ -28,6 +28,7 @@ export default async function GaleriaPublica() {
           wholesalePriceMax: p.wholesalePriceMax,
           retailPrice: p.retailPrice,
           tags: p.tags,
+          categories: p.categories,
           minOrderQty: p.minOrderQty,
           readyToShip: p.readyToShip,
         }))}

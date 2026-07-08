@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp } from "@/lib/audit";
+import { CATEGORY_SLUGS } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,6 +34,7 @@ type CreateBody = {
   wholesalePriceMax?: number | null;
   retailPrice?: number | null;
   tags?: string[];
+  categories?: string[];
   active?: boolean;
   minOrderQty?: number | null;
   readyToShip?: boolean;
@@ -57,6 +59,7 @@ export async function POST(req: NextRequest) {
       wholesalePriceMax: body.wholesalePriceMax ?? null,
       retailPrice: body.retailPrice ?? null,
       tags: body.tags ?? [],
+      categories: (body.categories ?? []).filter((c) => CATEGORY_SLUGS.includes(c)),
       active: body.active ?? true,
       minOrderQty: body.minOrderQty ?? 10,
       readyToShip: body.readyToShip ?? true,

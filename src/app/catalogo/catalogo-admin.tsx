@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import RichTextEditor from "@/components/rich-text-editor";
+import { PRODUCT_CATEGORIES } from "@/lib/categories";
 
 type Product = {
   id: string;
@@ -13,6 +15,7 @@ type Product = {
   wholesalePriceMax: number | null;
   retailPrice: number | null;
   tags: string[];
+  categories: string[];
   active: boolean;
   minOrderQty: number;
   readyToShip: boolean;
@@ -32,6 +35,7 @@ type FormState = {
   wholesalePriceMax: string;
   retailPrice: string;
   tags: string;
+  categories: string[];
   active: boolean;
   minOrderQty: string;
   readyToShip: boolean;
@@ -47,6 +51,7 @@ const EMPTY_FORM: FormState = {
   wholesalePriceMax: "",
   retailPrice: "",
   tags: "",
+  categories: [],
   active: true,
   minOrderQty: "10",
   readyToShip: true,
@@ -83,6 +88,7 @@ export default function CatalogoAdmin() {
       wholesalePriceMax: p.wholesalePriceMax?.toString() ?? "",
       retailPrice: p.retailPrice?.toString() ?? "",
       tags: p.tags.join(", "),
+      categories: p.categories ?? [],
       active: p.active,
       minOrderQty: p.minOrderQty?.toString() ?? "10",
       readyToShip: p.readyToShip ?? true,
@@ -156,6 +162,7 @@ export default function CatalogoAdmin() {
       videos: form.videos,
       sizes: parseList(form.sizes),
       tags: parseList(form.tags),
+      categories: form.categories,
       wholesalePriceMin: parseNum(form.wholesalePriceMin),
       wholesalePriceMax: parseNum(form.wholesalePriceMax),
       retailPrice: parseNum(form.retailPrice),
@@ -220,16 +227,46 @@ export default function CatalogoAdmin() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
-              Descrição <span className="font-normal text-zinc-400">— aceita HTML (negrito, listas, links)</span>
-            </label>
-            <textarea
+            <label className="mb-1 block text-xs font-medium text-zinc-700">Descrição</label>
+            <RichTextEditor
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={3}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              onChange={(html) => setForm((f) => ({ ...f, description: html }))}
               placeholder="Modelagem, tecido, lavagem, diferenciais..."
             />
+          </div>
+
+          {/* Categorias */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-700">
+              Categorias <span className="font-normal text-zinc-400">(marque uma ou mais — dirigem o menu do catálogo)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {PRODUCT_CATEGORIES.map((c) => {
+                const on = form.categories.includes(c.slug);
+                return (
+                  <button
+                    key={c.slug}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        categories: on
+                          ? f.categories.filter((x) => x !== c.slug)
+                          : [...f.categories, c.slug],
+                      }))
+                    }
+                    className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
+                      on
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Fotos */}
