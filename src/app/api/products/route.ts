@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp } from "@/lib/audit";
 import { CATEGORY_SLUGS } from "@/lib/categories";
+import { normalizeColors } from "@/lib/product-colors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,6 +36,7 @@ type CreateBody = {
   retailPrice?: number | null;
   tags?: string[];
   categories?: string[];
+  colors?: unknown;
   active?: boolean;
   minOrderQty?: number | null;
   readyToShip?: boolean;
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
       retailPrice: body.retailPrice ?? null,
       tags: body.tags ?? [],
       categories: (body.categories ?? []).filter((c) => CATEGORY_SLUGS.includes(c)),
+      colors: normalizeColors(body.colors, body.images ?? []) as Prisma.InputJsonValue,
       active: body.active ?? true,
       minOrderQty: body.minOrderQty ?? 10,
       readyToShip: body.readyToShip ?? true,

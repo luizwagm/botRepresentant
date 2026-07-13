@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import RichTextEditor from "@/components/rich-text-editor";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { type ProductColor } from "@/lib/product-colors";
 
 type Product = {
   id: string;
@@ -16,6 +17,7 @@ type Product = {
   retailPrice: number | null;
   tags: string[];
   categories: string[];
+  colors: ProductColor[] | null;
   active: boolean;
   minOrderQty: number;
   readyToShip: boolean;
@@ -36,6 +38,7 @@ type FormState = {
   retailPrice: string;
   tags: string;
   categories: string[];
+  colors: ProductColor[];
   active: boolean;
   minOrderQty: string;
   readyToShip: boolean;
@@ -52,6 +55,7 @@ const EMPTY_FORM: FormState = {
   retailPrice: "",
   tags: "",
   categories: [],
+  colors: [],
   active: true,
   minOrderQty: "10",
   readyToShip: true,
@@ -89,6 +93,7 @@ export default function CatalogoAdmin() {
       retailPrice: p.retailPrice?.toString() ?? "",
       tags: p.tags.join(", "),
       categories: p.categories ?? [],
+      colors: p.colors ?? [],
       active: p.active,
       minOrderQty: p.minOrderQty?.toString() ?? "10",
       readyToShip: p.readyToShip ?? true,
@@ -138,6 +143,21 @@ export default function CatalogoAdmin() {
     });
   }
 
+  function addColor() {
+    setForm((f) => ({ ...f, colors: [...f.colors, { name: "", hex: "#1B2A4A", image: null }] }));
+  }
+
+  function updateColor(idx: number, patch: Partial<ProductColor>) {
+    setForm((f) => ({
+      ...f,
+      colors: f.colors.map((c, i) => (i === idx ? { ...c, ...patch } : c)),
+    }));
+  }
+
+  function removeColor(idx: number) {
+    setForm((f) => ({ ...f, colors: f.colors.filter((_, i) => i !== idx) }));
+  }
+
   function parseList(s: string): string[] {
     return s.split(",").map((x) => x.trim()).filter(Boolean);
   }
@@ -163,6 +183,7 @@ export default function CatalogoAdmin() {
       sizes: parseList(form.sizes),
       tags: parseList(form.tags),
       categories: form.categories,
+      colors: form.colors.filter((c) => c.name.trim()),
       wholesalePriceMin: parseNum(form.wholesalePriceMin),
       wholesalePriceMax: parseNum(form.wholesalePriceMax),
       retailPrice: parseNum(form.retailPrice),
@@ -324,6 +345,62 @@ export default function CatalogoAdmin() {
                 />
               </label>
             </div>
+          </div>
+
+          {/* Cores */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-700">
+              Cores <span className="font-normal text-zinc-400">(opcional — pode vincular uma foto a cada cor)</span>
+            </label>
+            <div className="space-y-2">
+              {form.colors.map((c, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50/50 p-2">
+                  <input
+                    type="color"
+                    value={c.hex}
+                    onChange={(e) => updateColor(i, { hex: e.target.value })}
+                    className="h-9 w-10 shrink-0 cursor-pointer rounded border border-zinc-300"
+                    aria-label="Escolher cor"
+                  />
+                  <input
+                    type="text"
+                    value={c.name}
+                    onChange={(e) => updateColor(i, { name: e.target.value })}
+                    placeholder="Nome (ex.: Azul escuro)"
+                    className="min-w-[130px] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <select
+                    value={c.image ?? ""}
+                    onChange={(e) => updateColor(i, { image: e.target.value || null })}
+                    disabled={form.images.length === 0}
+                    title="Vincular a uma foto (opcional)"
+                    className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-100 disabled:text-zinc-400"
+                  >
+                    <option value="">Sem foto vinculada</option>
+                    {form.images.map((img, idx) => (
+                      <option key={img} value={img}>Foto {idx + 1}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeColor(i)}
+                    className="rounded-md bg-red-50 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addColor}
+                className="rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:border-indigo-400 hover:text-indigo-600"
+              >
+                + Adicionar cor
+              </button>
+            </div>
+            {form.images.length === 0 && form.colors.length > 0 && (
+              <p className="mt-1 text-xs text-zinc-400">Suba fotos acima pra poder vincular uma foto a uma cor.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

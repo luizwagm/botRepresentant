@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import BrandLogo from "@/components/brand-logo";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { type ProductColor } from "@/lib/product-colors";
 
 type PublicProduct = {
   id: string;
@@ -17,6 +18,7 @@ type PublicProduct = {
   retailPrice: number | null;
   tags: string[];
   categories: string[];
+  colors: ProductColor[];
   minOrderQty: number;
   readyToShip: boolean;
 };
@@ -199,6 +201,14 @@ export default function Gallery({
                     <div className="mt-1 text-base font-bold text-brand-indigo">{priceRange(p)}</div>
                     {p.retailPrice && (
                       <div className="text-xs text-zinc-400 line-through">varejo {formatPrice(p.retailPrice)}</div>
+                    )}
+                    {p.colors.length > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1">
+                        {p.colors.slice(0, 6).map((c, i) => (
+                          <span key={i} className="h-3 w-3 rounded-full border border-zinc-300" style={{ backgroundColor: c.hex }} title={c.name} />
+                        ))}
+                        {p.colors.length > 6 && <span className="text-[10px] text-zinc-400">+{p.colors.length - 6}</span>}
+                      </div>
                     )}
                   </div>
                 </button>
@@ -410,6 +420,49 @@ function ProductModal({
                     <span key={s} className="rounded-md border border-zinc-400 bg-white px-3 py-1 text-sm font-semibold text-zinc-900">{s}</span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {product.colors.length > 0 && (
+              <div className="mt-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-zinc-700">Cores</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {product.colors.map((color, i) => {
+                    const linked = color.image ? media.findIndex((m) => m.type === "image" && m.url === color.image) : -1;
+                    if (linked >= 0) {
+                      const active = idx === linked;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setIdx(linked)}
+                          aria-pressed={active}
+                          aria-label={`Ver foto da cor ${color.name}`}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition ${
+                            active
+                              ? "border-brand-indigo bg-indigo-50 text-brand-indigo"
+                              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                          }`}
+                        >
+                          <span className="h-4 w-4 rounded-full border border-zinc-300" style={{ backgroundColor: color.hex }} />
+                          {color.name}
+                        </button>
+                      );
+                    }
+                    return (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-2 py-1 text-xs text-zinc-600"
+                      >
+                        <span className="h-4 w-4 rounded-full border border-zinc-300" style={{ backgroundColor: color.hex }} />
+                        {color.name}
+                      </span>
+                    );
+                  })}
+                </div>
+                {product.colors.some((c) => c.image) && (
+                  <p className="mt-1.5 text-[11px] text-zinc-400">Toque numa cor com foto pra ver a peça naquela cor.</p>
+                )}
               </div>
             )}
 

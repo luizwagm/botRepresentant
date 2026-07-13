@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp, diffFields } from "@/lib/audit";
 import { CATEGORY_SLUGS } from "@/lib/categories";
+import { normalizeColors } from "@/lib/product-colors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ const TRACKED = [
   "sizes",
   "tags",
   "categories",
+  "colors",
   "wholesalePriceMin",
   "wholesalePriceMax",
   "retailPrice",
@@ -42,6 +44,7 @@ type PatchBody = {
   retailPrice?: number | null;
   tags?: string[];
   categories?: string[];
+  colors?: unknown;
   active?: boolean;
   minOrderQty?: number | null;
   readyToShip?: boolean;
@@ -66,6 +69,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.tags !== undefined) data.tags = { set: body.tags };
   if (body.categories !== undefined) {
     data.categories = { set: body.categories.filter((c) => CATEGORY_SLUGS.includes(c)) };
+  }
+  if (body.colors !== undefined) {
+    const imgs = body.images ?? (before.images as string[]);
+    data.colors = normalizeColors(body.colors, imgs) as Prisma.InputJsonValue;
   }
   if (body.wholesalePriceMin !== undefined) data.wholesalePriceMin = body.wholesalePriceMin;
   if (body.wholesalePriceMax !== undefined) data.wholesalePriceMax = body.wholesalePriceMax;

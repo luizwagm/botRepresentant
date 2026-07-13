@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import BrandLogo from "@/components/brand-logo";
 import LogoutButton from "@/components/logout-button";
+import { APP_VERSION } from "@/lib/version";
 
 type Me = { email: string; role: string; name: string | null };
 
@@ -32,6 +33,7 @@ export default function SiteHeader({ me }: { me: Me | null }) {
             )}
             <span className="mx-2 h-4 w-px bg-zinc-200" />
             <span className="hidden text-zinc-400 sm:inline">{me.name ?? me.email}</span>
+            <span className="hidden text-[10px] text-zinc-300 sm:inline" title="Versão do sistema">v{APP_VERSION}</span>
             <LogoutButton email={me.email} />
           </nav>
         )}

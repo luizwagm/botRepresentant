@@ -2,6 +2,7 @@ import Gallery from "./gallery";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { normalizeBrazilPhone } from "@/lib/phone";
+import { readColors } from "@/lib/product-colors";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -29,6 +30,7 @@ export default async function GaleriaPublica() {
           retailPrice: p.retailPrice,
           tags: p.tags,
           categories: p.categories,
+          colors: readColors(p.colors),
           minOrderQty: p.minOrderQty,
           readyToShip: p.readyToShip,
         }))}
