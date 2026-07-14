@@ -21,6 +21,16 @@ const DEFAULTS = {
   maxResultsPerKeyword: 20,
 };
 
+// Só aceitamos LOJA DE ROUPA. Alem do filtro do Google (includedType + strict),
+// checamos os tipos retornados como 2a barreira.
+const CLOTHING_TYPES = new Set(["clothing_store"]);
+
+function isClothingStore(p: PlaceSearchResult): boolean {
+  if (p.primaryType && CLOTHING_TYPES.has(p.primaryType)) return true;
+  if (p.types?.some((t) => CLOTHING_TYPES.has(t))) return true;
+  return false;
+}
+
 export type HuntCityResult = {
   city: string;
   state: string;
@@ -82,10 +92,17 @@ export async function huntCity(city: string, state: string): Promise<HuntCityRes
           radiusMeters: DEFAULTS.searchRadiusMeters,
         },
         maxResultCount: DEFAULTS.maxResultsPerKeyword,
+        includedType: "clothing_store",
+        strictTypeFiltering: true,
       });
     } catch (err) {
       console.error(`  ! erro buscando "${kw}":`, err instanceof Error ? err.message : err);
       continue;
+    }
+
+    // Observabilidade: distingue "filtrou tudo (clothing_store estrito)" de "cidade vazia".
+    if (places.length === 0) {
+      console.warn(`  · 0 lojas de roupa (clothing_store) pra "${kw}" em ${city}/${state}`);
     }
 
     for (const p of places) {
@@ -104,6 +121,12 @@ export async function huntCity(city: string, state: string): Promise<HuntCityRes
 
       if (isBlacklisted(name)) {
         result.skipped.blacklist++;
+        continue;
+      }
+
+      // Só lojas de roupa — descarta qualquer outro tipo de comércio (farmácia, mercado, etc.).
+      if (!isClothingStore(p)) {
+        result.skipped.quality++;
         continue;
       }
 

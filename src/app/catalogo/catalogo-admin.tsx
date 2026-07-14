@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import RichTextEditor from "@/components/rich-text-editor";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
-import { type ProductColor } from "@/lib/product-colors";
+import { readColors, type ProductColor } from "@/lib/product-colors";
 
 type Product = {
   id: string;
@@ -93,7 +93,7 @@ export default function CatalogoAdmin() {
       retailPrice: p.retailPrice?.toString() ?? "",
       tags: p.tags.join(", "),
       categories: p.categories ?? [],
-      colors: p.colors ?? [],
+      colors: readColors(p.colors),
       active: p.active,
       minOrderQty: p.minOrderQty?.toString() ?? "10",
       readyToShip: p.readyToShip ?? true,
@@ -130,7 +130,15 @@ export default function CatalogoAdmin() {
   }
 
   function removeMedia(kind: MediaKind, idx: number) {
-    setForm((f) => ({ ...f, [kind]: f[kind].filter((_, i) => i !== idx) }));
+    setForm((f) => {
+      const removed = f[kind][idx];
+      const next = { ...f, [kind]: f[kind].filter((_, i) => i !== idx) };
+      // Se removeu uma foto que estava vinculada a uma cor, solta o vínculo.
+      if (kind === "images") {
+        next.colors = f.colors.map((c) => (c.image === removed ? { ...c, image: null } : c));
+      }
+      return next;
+    });
   }
 
   function moveMedia(kind: MediaKind, idx: number, dir: -1 | 1) {
@@ -218,6 +226,16 @@ export default function CatalogoAdmin() {
     if (!confirm("Excluir este produto?")) return;
     await fetch(`/api/products/${id}`, { method: "DELETE" });
     await load();
+  }
+
+  async function copyLink(id: string) {
+    const url = `${window.location.origin}/catalogo/publico/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Link do produto copiado:\n" + url);
+    } catch {
+      window.prompt("Copie o link do produto:", url);
+    }
   }
 
   return (
@@ -546,6 +564,7 @@ export default function CatalogoAdmin() {
                   )}
                   <div className="mt-3 flex gap-2">
                     <button onClick={() => startEdit(p)} className="flex-1 rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200">Editar</button>
+                    <button onClick={() => copyLink(p.id)} title="Copiar link público do produto" className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200">Link</button>
                     <button onClick={() => remove(p.id)} className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100">Excluir</button>
                   </div>
                 </div>

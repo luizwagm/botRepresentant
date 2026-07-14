@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display, Jost } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
+import { env } from "@/lib/env";
 import SiteHeader from "@/components/site-header";
 
 const geistSans = Geist({
@@ -27,6 +28,7 @@ const jost = Jost({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.publicBaseUrl),
   title: "L. Augusto Atacado",
   description: "Jeans direto da fábrica do Agreste — atacado para lojas de todo o Brasil",
 };

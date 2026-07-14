@@ -18,6 +18,8 @@ export type PlaceSearchResult = {
   userRatingCount?: number;
   googleMapsUri?: string;
   primaryTypeDisplayName?: { text: string };
+  primaryType?: string;
+  types?: string[];
   businessStatus?: string;
 };
 
@@ -35,6 +37,8 @@ const SEARCH_FIELD_MASK = [
   "places.userRatingCount",
   "places.googleMapsUri",
   "places.primaryTypeDisplayName",
+  "places.primaryType",
+  "places.types",
   "places.businessStatus",
 ].join(",");
 
@@ -44,6 +48,8 @@ export type TextSearchOptions = {
   maxResultCount?: number;
   languageCode?: string;
   regionCode?: string;
+  includedType?: string; // restringe ao tipo (ex.: "clothing_store")
+  strictTypeFiltering?: boolean; // so retorna places que casam o includedType
 };
 
 export async function textSearch(opts: TextSearchOptions): Promise<PlaceSearchResult[]> {
@@ -54,6 +60,10 @@ export async function textSearch(opts: TextSearchOptions): Promise<PlaceSearchRe
     regionCode: opts.regionCode ?? "BR",
     maxResultCount: Math.min(opts.maxResultCount ?? 20, 20),
   };
+  if (opts.includedType) {
+    body.includedType = opts.includedType;
+    body.strictTypeFiltering = opts.strictTypeFiltering ?? false;
+  }
   if (opts.locationBias) {
     body.locationBias = {
       circle: {

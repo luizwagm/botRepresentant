@@ -22,6 +22,8 @@ export const env = {
   claudeModel: optional("CLAUDE_MODEL", "claude-sonnet-4-6"),
   luizWhatsapp: optional("LUIZ_WHATSAPP", ""),
   brandName: optional("BRAND_NAME", "Jeans Direto do Agreste"),
+  // URL base publica (pra preview de link/og:image). Em producao: https://atacado.luizaugust.me
+  publicBaseUrl: optional("PUBLIC_BASE_URL", "http://localhost:3030"),
   authSecret: required("AUTH_SECRET"),
   adminEmail: required("ADMIN_EMAIL"),
   adminPassword: required("ADMIN_PASSWORD"),

@@ -73,6 +73,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.colors !== undefined) {
     const imgs = body.images ?? (before.images as string[]);
     data.colors = normalizeColors(body.colors, imgs) as Prisma.InputJsonValue;
+  } else if (body.images !== undefined) {
+    // Imagens mudaram sem mexer nas cores: reconcilia vínculos órfãos.
+    data.colors = normalizeColors(before.colors, body.images) as Prisma.InputJsonValue;
   }
   if (body.wholesalePriceMin !== undefined) data.wholesalePriceMin = body.wholesalePriceMin;
   if (body.wholesalePriceMax !== undefined) data.wholesalePriceMax = body.wholesalePriceMax;
