@@ -7,12 +7,15 @@ dotenv.config({ override: true });
 
 function required(name: string): string {
   const v = process.env[name];
-  if (!v) throw new Error(`Missing required env var: ${name}`);
+  if (!v || !v.trim()) throw new Error(`Missing required env var: ${name}`);
   return v;
 }
 
+// Trata string vazia / só espaço como ausente (nao so null/undefined). Sem isso,
+// uma linha "PUBLIC_BASE_URL=" no .env viraria "" e NAO cairia no fallback.
 function optional(name: string, fallback: string): string {
-  return process.env[name] ?? fallback;
+  const v = process.env[name];
+  return v && v.trim() ? v : fallback;
 }
 
 export const env = {

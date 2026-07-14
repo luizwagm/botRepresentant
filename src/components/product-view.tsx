@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import DOMPurify from "dompurify";
 import type { ProductColor } from "@/lib/product-colors";
+
+// Detecta hidratacao no cliente sem setState-em-effect (retorna false no SSR e no
+// 1o render do client, depois true). Usado pra preencher a descricao sanitizada
+// so apos montar, evitando mismatch de hidratacao na pagina [id].
+const emptySubscribe = () => () => {};
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+}
 
 export type PublicProduct = {
   id: string;
@@ -94,6 +106,10 @@ export default function ProductView({
   const media = useMemo(() => buildMedia(product), [product]);
   const descHtml = useMemo(() => (product.description ? sanitizeHtml(product.description) : ""), [product.description]);
   const [idx, setIdx] = useState(0);
+  // sanitizeHtml só produz HTML no cliente (precisa de window). Pra não gerar
+  // mismatch de hidratação (server="" vs client=HTML) na página [id] que faz SSR
+  // deste componente, o container é sempre renderizado e o HTML entra após hidratar.
+  const mounted = useHydrated();
   const count = media.length;
 
   useEffect(() => {
@@ -200,8 +216,11 @@ export default function ProductView({
           <div className="mt-3 text-xs font-medium text-zinc-600">Pedido mínimo: {product.minOrderQty} peças por modelo</div>
         </div>
 
-        {descHtml && (
-          <div className="rich-text mt-4 text-sm text-zinc-700" dangerouslySetInnerHTML={{ __html: descHtml }} />
+        {product.description && (
+          <div
+            className="rich-text mt-4 text-sm text-zinc-700"
+            dangerouslySetInnerHTML={{ __html: mounted ? descHtml : "" }}
+          />
         )}
 
         {product.sizes.length > 0 && (

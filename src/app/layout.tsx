@@ -27,8 +27,24 @@ const jost = Jost({
   weight: ["400", "500", "600"],
 });
 
+// PUBLIC_BASE_URL malformado (sem protocolo, vazio) NAO pode derrubar o site inteiro:
+// isto e o metadata do root layout, avaliado no import do modulo. Tenta como esta;
+// se falhar, tenta prefixar https://; em ultimo caso, undefined (Next so deixa de
+// resolver URLs relativas de og:image — sem crash).
+function safeMetadataBase(raw: string): URL | undefined {
+  try {
+    return new URL(raw);
+  } catch {
+    try {
+      return new URL(`https://${raw}`);
+    } catch {
+      return undefined;
+    }
+  }
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(env.publicBaseUrl),
+  metadataBase: safeMetadataBase(env.publicBaseUrl),
   title: "L. Augusto Atacado",
   description: "Jeans direto da fábrica do Agreste — atacado para lojas de todo o Brasil",
 };
