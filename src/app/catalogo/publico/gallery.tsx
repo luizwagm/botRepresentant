@@ -9,9 +9,9 @@ import ProductView, {
   formatPrice,
   priceRange,
   discountPercent,
-  orderMessageFor,
   WhatsAppIcon,
 } from "@/components/product-view";
+import { orderMessageFor } from "@/lib/order-message";
 
 export default function Gallery({
   products,

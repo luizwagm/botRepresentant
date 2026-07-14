@@ -77,10 +77,6 @@ export function discountPercent(p: PublicProduct): number | null {
   return pct > 0 ? pct : null;
 }
 
-export function orderMessageFor(name: string): string {
-  return `Olá Luiz! Vim pelo catálogo, tenho interesse em "${name}". Pode me passar mais informações?`;
-}
-
 export function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">

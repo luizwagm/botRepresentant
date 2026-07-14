@@ -7,7 +7,8 @@ import { env } from "@/lib/env";
 import { normalizeBrazilPhone } from "@/lib/phone";
 import { readColors } from "@/lib/product-colors";
 import BrandLogo from "@/components/brand-logo";
-import ProductView, { type PublicProduct, orderMessageFor, WhatsAppIcon } from "@/components/product-view";
+import ProductView, { type PublicProduct, WhatsAppIcon } from "@/components/product-view";
+import { orderMessageFor } from "@/lib/order-message";
 
 export const dynamic = "force-dynamic";
 
