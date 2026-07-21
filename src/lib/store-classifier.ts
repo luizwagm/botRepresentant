@@ -1,4 +1,4 @@
-import type { StoreType } from "@prisma/client";
+import type { BusinessKind, StoreType } from "@prisma/client";
 
 function normalize(s: string): string {
   // Remove combining diacritical marks (U+0300..U+036F) — converte "fábrica" -> "fabrica".
@@ -28,6 +28,38 @@ const BLACKLIST_KEYWORDS = [
 export function isBlacklisted(name: string): boolean {
   const n = normalize(name);
   return BLACKLIST_KEYWORDS.some((kw) => n.includes(kw));
+}
+
+/**
+ * Pistas de que a loja PRODUZ a propria mercadoria (nao so revende).
+ * Obs.: "fabrica"/"confeccao"/"industria" ja caem no BLACKLIST_KEYWORDS e nem
+ * entram como lead; ficam aqui pra cobrir leads antigos e cadastros manuais.
+ * As demais (malharia, atelie, faccao...) NAO sao barradas na entrada — sao
+ * justamente as que a tag precisa pegar.
+ */
+const MANUFACTURER_KEYWORDS = [
+  "fabrica",
+  "fabricacao",
+  "confeccao",
+  "confeccoes",
+  "industria",
+  "industrial",
+  "malharia",
+  "atelie",
+  "faccao",
+  "tecelagem",
+  "costura",
+];
+
+/**
+ * Marca se a loja fabrica a propria mercadoria (FABRICANTE) ou so revende
+ * (VAREJISTA). So da pra inferir pelo nome do place — o usuario pode corrigir
+ * manualmente no painel.
+ */
+export function classifyBusinessKind(name: string): BusinessKind {
+  const n = normalize(name);
+  if (MANUFACTURER_KEYWORDS.some((kw) => n.includes(kw))) return "FABRICANTE";
+  return "VAREJISTA";
 }
 
 /**

@@ -52,6 +52,16 @@ log "$STEP"
 pm2 restart "$PM2_APP"
 ok "Aplicação reiniciada"
 
+# Backfills rodam DEPOIS do restart de propósito: eles gravam valores de enum
+# novos, e o processo antigo (com o PrismaClient já carregado em memória) não
+# os conhece — rodar antes abriria uma janela de 500 no painel durante o build.
+# Ambos são idempotentes: em deploys seguintes não acham nada e saem na hora.
+STEP="Backfill de leads (zap / fabricante)"
+log "$STEP"
+npm run backfill:sem-whatsapp
+npm run backfill:business-kind
+ok "Backfills concluídos"
+
 echo -e "\n${GREEN}========================================${NC}"
 echo -e "${GREEN}✓ DEPLOY CONCLUÍDO COM SUCESSO${NC}"
 echo -e "${GREEN}========================================${NC}"

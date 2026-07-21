@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import LeadModal, { type Lead } from "@/components/lead-modal";
 import {
   BR_STATES,
+  BUSINESS_KINDS,
+  BUSINESS_KIND_COLOR,
+  BUSINESS_KIND_LABEL,
   FUNNEL_STAGES,
   FUNNEL_STAGE_COLOR,
   FUNNEL_STAGE_LABEL,
@@ -16,6 +19,7 @@ type Filters = {
   city: string;
   state: string;
   storeType: string;
+  businessKind: string;
   funnelStage: string;
   hasWhatsapp: boolean;
   hasInstagram: boolean;
@@ -26,6 +30,7 @@ const EMPTY_FILTERS: Filters = {
   city: "",
   state: "",
   storeType: "",
+  businessKind: "",
   funnelStage: "",
   hasWhatsapp: false,
   hasInstagram: false,
@@ -46,6 +51,7 @@ export default function LeadsTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Lead | null>(null);
   const [showHunt, setShowHunt] = useState(false);
 
@@ -60,6 +66,7 @@ export default function LeadsTable() {
     if (filters.city) params.set("city", filters.city);
     if (filters.state) params.set("state", filters.state);
     if (filters.storeType) params.set("store_type", filters.storeType);
+    if (filters.businessKind) params.set("business_kind", filters.businessKind);
     if (filters.funnelStage) params.set("funnel_stage", filters.funnelStage);
     if (filters.hasWhatsapp) params.set("has_whatsapp", "1");
     if (filters.hasInstagram) params.set("has_instagram", "1");
@@ -67,11 +74,23 @@ export default function LeadsTable() {
     params.set("page", String(page));
     params.set("limit", "50");
 
-    const res = await fetch(`/api/leads?${params.toString()}`);
-    const json = await res.json();
-    setLeads(json.items);
-    setPagination(json.pagination);
-    setLoading(false);
+    // Sem try/catch aqui, um erro da API (ou uma pagina de erro nao-JSON)
+    // rejeitava a promise e o setLoading(false) nunca rodava — a tela ficava
+    // presa em "Carregando..." ate o F5.
+    try {
+      const res = await fetch(`/api/leads?${params.toString()}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Falha ao carregar leads.");
+      setLeads(json.items);
+      setPagination(json.pagination);
+      setLoadError(null);
+    } catch (e) {
+      setLeads([]);
+      setPagination({ total: 0, totalPages: 1 });
+      setLoadError(e instanceof Error ? e.message : "Falha ao carregar leads.");
+    } finally {
+      setLoading(false);
+    }
   }, [filters, page]);
 
   useEffect(() => {
@@ -144,6 +163,16 @@ export default function LeadsTable() {
             ))}
           </select>
           <select
+            value={filters.businessKind}
+            onChange={(e) => updateFilter("businessKind", e.target.value)}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="">Fabricante/varejista</option>
+            {BUSINESS_KINDS.map((k) => (
+              <option key={k} value={k}>{BUSINESS_KIND_LABEL[k]}</option>
+            ))}
+          </select>
+          <select
             value={filters.funnelStage}
             onChange={(e) => updateFilter("funnelStage", e.target.value)}
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -178,6 +207,9 @@ export default function LeadsTable() {
             Limpar filtros
           </button>
         </div>
+        {loadError && (
+          <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</div>
+        )}
         <div className="mt-3 text-xs text-zinc-500">
           {loading ? "Carregando..." : `${pagination.total.toLocaleString("pt-BR")} leads encontrados`}
         </div>
@@ -218,7 +250,14 @@ export default function LeadsTable() {
                 <td className="px-4 py-3 text-zinc-700">
                   {lead.city}/{lead.state}
                 </td>
-                <td className="px-4 py-3 text-zinc-700">{STORE_TYPE_LABEL[lead.storeType]}</td>
+                <td className="px-4 py-3 text-zinc-700">
+                  <div>{STORE_TYPE_LABEL[lead.storeType]}</div>
+                  <span
+                    className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${BUSINESS_KIND_COLOR[lead.businessKind]}`}
+                  >
+                    {BUSINESS_KIND_LABEL[lead.businessKind]}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-zinc-700">
                   {lead.rating ? (
                     <span>

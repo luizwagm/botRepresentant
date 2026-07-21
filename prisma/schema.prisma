@@ -25,6 +25,13 @@ enum FunnelStage {
   SEM_RESPOSTA
   RECUSOU
   PAUSADO
+  SEM_WHATSAPP // loja sem zap — nao da pra abordar pelo canal principal
+}
+
+enum BusinessKind {
+  FABRICANTE // fabrica a propria mercadoria (concorrente/menos propenso a comprar)
+  VAREJISTA  // so revende — cliente-alvo
+  INDEFINIDO // nao deu pra inferir pelo nome
 }
 
 enum StoreType {
@@ -53,6 +60,7 @@ model Lead {
   rating          Float?
   reviewCount     Int?         @map("review_count")
   storeType       StoreType    @default(OUTROS) @map("store_type")
+  businessKind    BusinessKind @default(INDEFINIDO) @map("business_kind")
   responsibleName String?      @map("responsible_name") // preenchimento manual
   foundedAt       DateTime?    @map("founded_at")        // tempo de existencia (manual ou via CNPJ na v1.5)
   funnelStage     FunnelStage  @default(NOVO_LEAD) @map("funnel_stage")
@@ -67,6 +75,7 @@ model Lead {
   @@index([city, state])
   @@index([state])
   @@index([storeType])
+  @@index([businessKind])
   @@index([funnelStage])
   @@map("leads")
 }

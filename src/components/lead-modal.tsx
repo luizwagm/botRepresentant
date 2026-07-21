@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import {
+  BUSINESS_KINDS,
+  BUSINESS_KIND_LABEL,
   FUNNEL_STAGES,
   FUNNEL_STAGE_LABEL,
   STORE_TYPES,
   STORE_TYPE_LABEL,
+  type BusinessKindValue,
   type FunnelStageValue,
   type StoreTypeValue,
 } from "@/lib/labels";
@@ -24,6 +27,7 @@ export type Lead = {
   rating: number | null;
   reviewCount: number | null;
   storeType: StoreTypeValue;
+  businessKind: BusinessKindValue;
   responsibleName: string | null;
   foundedAt: string | null;
   funnelStage: FunnelStageValue;
@@ -47,6 +51,7 @@ export default function LeadModal({
     notes: lead.notes ?? "",
     funnelStage: lead.funnelStage,
     storeType: lead.storeType,
+    businessKind: lead.businessKind,
     optOut: lead.optOut,
     instagram: lead.instagram ?? "",
     whatsapp: lead.whatsapp ?? "",
@@ -232,6 +237,17 @@ export default function LeadModal({
               >
                 {STORE_TYPES.map((t) => (
                   <option key={t} value={t}>{STORE_TYPE_LABEL[t]}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Fabricante ou varejista">
+              <select
+                value={form.businessKind}
+                onChange={(e) => setForm({ ...form, businessKind: e.target.value as BusinessKindValue })}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {BUSINESS_KINDS.map((k) => (
+                  <option key={k} value={k}>{BUSINESS_KIND_LABEL[k]}</option>
                 ))}
               </select>
             </Field>

@@ -14,24 +14,18 @@ import {
 } from "@dnd-kit/core";
 import LeadModal, { type Lead } from "@/components/lead-modal";
 import {
+  BUSINESS_KIND_COLOR,
+  BUSINESS_KIND_LABEL,
+  FUNNEL_STAGES,
   FUNNEL_STAGE_COLOR,
   FUNNEL_STAGE_LABEL,
   STORE_TYPE_LABEL,
   type FunnelStageValue,
 } from "@/lib/labels";
 
-const COLUMNS: FunnelStageValue[] = [
-  "NOVO_LEAD",
-  "MENSAGEM_ENVIADA",
-  "RESPONDEU",
-  "EM_NEGOCIACAO",
-  "CATALOGO_ENVIADO",
-  "PEDIDO_FEITO",
-  "CLIENTE",
-  "SEM_RESPOSTA",
-  "RECUSOU",
-  "PAUSADO",
-];
+// Colunas saem direto de FUNNEL_STAGES (labels.ts) — sem lista duplicada aqui,
+// entao adicionar uma etapa la ja cria a coluna no Kanban.
+const COLUMNS: readonly FunnelStageValue[] = FUNNEL_STAGES;
 
 export default function Kanban() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -213,6 +207,13 @@ function Card({
           </span>
         )}
       </div>
+      {lead.businessKind === "FABRICANTE" && (
+        <span
+          className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${BUSINESS_KIND_COLOR.FABRICANTE}`}
+        >
+          {BUSINESS_KIND_LABEL.FABRICANTE}
+        </span>
+      )}
       {lead.whatsapp && (
         <div className="mt-1 text-xs text-emerald-700">WA pronto</div>
       )}

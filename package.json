@@ -1,6 +1,6 @@
 {
   "name": "jeans_hunter",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3030",
@@ -12,7 +12,9 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --skip-seed",
-    "seed:admin": "tsx scripts/ensure-admin.ts"
+    "seed:admin": "tsx scripts/ensure-admin.ts",
+    "backfill:business-kind": "tsx scripts/backfill-business-kind.ts",
+    "backfill:sem-whatsapp": "tsx scripts/backfill-sem-whatsapp.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

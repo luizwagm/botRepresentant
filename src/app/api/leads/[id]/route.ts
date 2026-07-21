@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { FUNNEL_STAGES, STORE_TYPES } from "@/lib/labels";
+import { BUSINESS_KINDS, FUNNEL_STAGES, STORE_TYPES } from "@/lib/labels";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp, diffFields } from "@/lib/audit";
 
@@ -14,6 +14,7 @@ type PatchBody = {
   notes?: string | null;
   funnelStage?: string;
   storeType?: string;
+  businessKind?: string;
   optOut?: boolean;
   instagram?: string | null;
   whatsapp?: string | null;
@@ -27,6 +28,7 @@ const TRACKED = [
   "whatsapp",
   "funnelStage",
   "storeType",
+  "businessKind",
   "optOut",
 ] as const;
 
@@ -75,9 +77,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     data.storeType = body.storeType as Prisma.LeadUpdateInput["storeType"];
   }
+  if (body.businessKind !== undefined) {
+    if (!BUSINESS_KINDS.includes(body.businessKind as (typeof BUSINESS_KINDS)[number])) {
+      return NextResponse.json({ error: "businessKind invalido" }, { status: 400 });
+    }
+    data.businessKind = body.businessKind as Prisma.LeadUpdateInput["businessKind"];
+  }
   if (body.optOut !== undefined) {
     data.optOut = body.optOut;
     data.optOutAt = body.optOut ? new Date() : null;
+  }
+
+  // Espelha no painel a regra do intake: se o lead estava em "Não tem Zap"
+  // justamente por nao ter zap e o usuario acabou de preencher um, ele volta
+  // pra fila de abordagem. So quando o usuario nao escolheu etapa
+  // explicitamente — o modal reenvia a etapa atual junto com o resto do form.
+  if (
+    before.funnelStage === "SEM_WHATSAPP" &&
+    !before.whatsapp &&
+    body.whatsapp &&
+    (body.funnelStage === undefined || body.funnelStage === before.funnelStage)
+  ) {
+    data.funnelStage = "NOVO_LEAD";
   }
 
   try {

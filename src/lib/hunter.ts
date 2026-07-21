@@ -2,8 +2,8 @@ import type { StoreType } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { textSearch, geocodeCity, type PlaceSearchResult } from "./places";
-import { normalizeBrazilPhone } from "./phone";
-import { isBlacklisted, classifyStoreType } from "./store-classifier";
+import { normalizeBrazilPhone, isMobileBr } from "./phone";
+import { isBlacklisted, classifyStoreType, classifyBusinessKind } from "./store-classifier";
 
 const KEYWORDS = [
   "loja de roupas",
@@ -149,8 +149,12 @@ export async function huntCity(city: string, state: string): Promise<HuntCityRes
       const rawPhone = p.nationalPhoneNumber ?? p.internationalPhoneNumber ?? null;
       const phoneE164 = normalizeBrazilPhone(rawPhone);
       const { whatsapp: waFromSite, instagram } = extractContact(p.websiteUri);
-      const whatsapp = waFromSite ?? phoneE164;
+      // So celular vira WhatsApp. Telefone fixo continua guardado em `phone`,
+      // mas nao conta como zap (senao a loja cai em "Novo lead" com selo
+      // "WA pronto" e o link wa.me aponta pra um fixo).
+      const whatsapp = waFromSite ?? (isMobileBr(phoneE164) ? phoneE164 : null);
       const storeType: StoreType = classifyStoreType(name, kw);
+      const businessKind = classifyBusinessKind(name);
 
       // Loja ja listada NAO e listada de novo (nem atualizada) — pulamos.
       const existing = await prisma.lead.findUnique({
@@ -179,6 +183,10 @@ export async function huntCity(city: string, state: string): Promise<HuntCityRes
             rating: p.rating ?? null,
             reviewCount: p.userRatingCount ?? null,
             storeType,
+            businessKind,
+            // Sem zap nao da pra abordar pelo canal principal — ja entra na
+            // coluna propria do funil em vez de poluir "Novo lead".
+            funnelStage: whatsapp ? "NOVO_LEAD" : "SEM_WHATSAPP",
           },
         });
         result.inserted++;

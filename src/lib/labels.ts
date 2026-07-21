@@ -23,8 +23,13 @@ export const STORE_TYPE_LABEL: Record<StoreTypeValue, string> = {
   OUTROS: "Outros",
 };
 
+// A ordem aqui manda na ordem das colunas do Kanban e dos selects.
 export const FUNNEL_STAGES = [
   "NOVO_LEAD",
+  // Logo apos NOVO_LEAD de proposito: e balde de ENTRADA (o hunter joga lead
+  // sem zap aqui automaticamente), nao estado terminal — precisa estar visivel
+  // sem rolar o Kanban ate o fim.
+  "SEM_WHATSAPP",
   "MENSAGEM_ENVIADA",
   "RESPONDEU",
   "EM_NEGOCIACAO",
@@ -49,6 +54,7 @@ export const FUNNEL_STAGE_LABEL: Record<FunnelStageValue, string> = {
   SEM_RESPOSTA: "Sem resposta",
   RECUSOU: "Recusou",
   PAUSADO: "Pausado",
+  SEM_WHATSAPP: "Não tem Zap",
 };
 
 // Cor de badge por etapa (Tailwind classes) — usadas em listagem e Kanban.
@@ -63,6 +69,25 @@ export const FUNNEL_STAGE_COLOR: Record<FunnelStageValue, string> = {
   SEM_RESPOSTA: "bg-zinc-50 text-zinc-500 ring-zinc-200",
   RECUSOU: "bg-rose-50 text-rose-700 ring-rose-200",
   PAUSADO: "bg-yellow-50 text-yellow-800 ring-yellow-200",
+  SEM_WHATSAPP: "bg-orange-50 text-orange-700 ring-orange-200",
+};
+
+// Fabricante x varejista — separa quem produz a propria mercadoria (menos
+// propenso a comprar) de quem so revende (cliente-alvo).
+export const BUSINESS_KINDS = ["FABRICANTE", "VAREJISTA", "INDEFINIDO"] as const;
+
+export type BusinessKindValue = (typeof BUSINESS_KINDS)[number];
+
+export const BUSINESS_KIND_LABEL: Record<BusinessKindValue, string> = {
+  FABRICANTE: "Fabricante",
+  VAREJISTA: "Varejista",
+  INDEFINIDO: "Indefinido",
+};
+
+export const BUSINESS_KIND_COLOR: Record<BusinessKindValue, string> = {
+  FABRICANTE: "bg-purple-50 text-purple-700 ring-purple-200",
+  VAREJISTA: "bg-teal-50 text-teal-700 ring-teal-200",
+  INDEFINIDO: "bg-zinc-50 text-zinc-500 ring-zinc-200",
 };
 
 export const BR_STATES = [

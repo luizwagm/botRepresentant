@@ -28,6 +28,16 @@ export function normalizeBrazilPhone(raw: string | null | undefined): string | n
   return null;
 }
 
+/**
+ * Celular BR em E.164 = 55 + DDD(2) + 9 digitos comecando com 9 => 13 chars.
+ * Fixo da 12 chars. Serve pra NAO tratar telefone fixo como WhatsApp — o
+ * normalizeBrazilPhone aceita fixo de proposito (pra guardar o numero), mas
+ * mandar zap pra fixo nao funciona.
+ */
+export function isMobileBr(e164: string | null | undefined): boolean {
+  return !!e164 && e164.length === 13 && e164.startsWith("55") && e164[4] === "9";
+}
+
 export function whatsappLink(phoneRaw: string | null | undefined, message: string): string | null {
   // Sempre normaliza (nao confiar em startsWith("55") — DDD 55/Santa Maria-RS
   // tambem comeca com 55 e geraria numero sem codigo de pais).
