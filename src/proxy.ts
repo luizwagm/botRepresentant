@@ -8,6 +8,7 @@ const COOKIE_NAME = "jh_session";
 const PUBLIC_PREFIXES = [
   "/login",
   "/catalogo/publico",
+  "/sobre",
   "/api/auth/login",
   "/api/auth/logout",
   "/uploads",

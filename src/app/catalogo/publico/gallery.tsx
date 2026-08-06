@@ -44,17 +44,25 @@ export default function Gallery({
             <BrandLogo variant="full" size="md" />
             <p className="mt-2 text-xs text-zinc-500">Catálogo atacado — fabricante do Agreste Pernambucano</p>
           </div>
-          {luizWhatsapp && (
-            <a
-              href={`https://wa.me/${luizWhatsapp}?text=${encodeURIComponent("Olá Luiz, vim pelo catálogo. Pode me passar mais informações?")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 sm:w-auto"
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <Link
+              href="/sobre"
+              className="rounded-md px-3 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
             >
-              <WhatsAppIcon className="h-4 w-4" />
-              Falar no WhatsApp
-            </a>
-          )}
+              Sobre nós
+            </Link>
+            {luizWhatsapp && (
+              <a
+                href={`https://wa.me/${luizWhatsapp}?text=${encodeURIComponent("Olá Luiz, vim pelo catálogo. Pode me passar mais informações?")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 sm:flex-none"
+              >
+                <WhatsAppIcon className="h-4 w-4" />
+                Falar no WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </header>
 

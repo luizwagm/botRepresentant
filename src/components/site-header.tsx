@@ -10,9 +10,9 @@ type Me = { email: string; role: string; name: string | null };
 
 export default function SiteHeader({ me }: { me: Me | null }) {
   const pathname = usePathname();
-  // A página pública do catálogo tem o próprio cabeçalho (gallery.tsx) — não
+  // As páginas públicas (catálogo e /sobre) têm o próprio cabeçalho — não
   // duplicar a chrome administrativa aqui.
-  if (pathname?.startsWith("/catalogo/publico")) return null;
+  if (pathname?.startsWith("/catalogo/publico") || pathname?.startsWith("/sobre")) return null;
 
   return (
     <header className="border-b border-zinc-200 bg-white">
@@ -25,6 +25,7 @@ export default function SiteHeader({ me }: { me: Me | null }) {
             <Link href="/leads" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Leads</Link>
             <Link href="/funil" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Funil</Link>
             <Link href="/catalogo" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Catálogo</Link>
+            <Link href="/conteudo" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Sobre</Link>
             {me.role === "ADMIN" && (
               <>
                 <Link href="/usuarios" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Usuários</Link>

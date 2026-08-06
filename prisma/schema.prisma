@@ -116,6 +116,21 @@ model Product {
   @@map("products")
 }
 
+// Pagina institucional "Sobre nos" — conteudo unico (singleton, id fixo "about")
+// alimentado pelo painel e exibido em /sobre.
+model AboutPage {
+  id           String   @id @default("about")
+  heroTitle    String   @map("hero_title")
+  heroSubtitle String   @default("") @map("hero_subtitle")
+  storyHtml    String   @db.Text @map("story_html") // narrativa em HTML (rich text)
+  highlights   Json     // [{title, description}] — diferenciais
+  stats        Json     // [{value, label}] — barra de destaques
+  imageUrl     String?  @map("image_url")           // imagem de topo (opcional)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("about_pages")
+}
+
 enum Role {
   ADMIN
   VENDEDOR
