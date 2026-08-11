@@ -40,6 +40,7 @@ type CreateBody = {
   active?: boolean;
   minOrderQty?: number | null;
   readyToShip?: boolean;
+  supplierId?: string | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -50,24 +51,37 @@ export async function POST(req: NextRequest) {
   if (!body.name?.trim()) {
     return NextResponse.json({ error: "name e obrigatorio" }, { status: 400 });
   }
-  const product = await prisma.product.create({
-    data: {
-      name: body.name.trim(),
-      description: body.description ?? null,
-      images: body.images ?? [],
-      videos: body.videos ?? [],
-      sizes: body.sizes ?? [],
-      wholesalePriceMin: body.wholesalePriceMin ?? null,
-      wholesalePriceMax: body.wholesalePriceMax ?? null,
-      retailPrice: body.retailPrice ?? null,
-      tags: body.tags ?? [],
-      categories: (body.categories ?? []).filter((c) => CATEGORY_SLUGS.includes(c)),
-      colors: normalizeColors(body.colors, body.images ?? []) as Prisma.InputJsonValue,
-      active: body.active ?? true,
-      minOrderQty: body.minOrderQty ?? 10,
-      readyToShip: body.readyToShip ?? true,
-    },
-  });
+  // Valida o fornecedor antes de gravar — evita FK violation virar 500.
+  if (body.supplierId) {
+    const exists = await prisma.supplier.findUnique({ where: { id: body.supplierId }, select: { id: true } });
+    if (!exists) return NextResponse.json({ error: "fornecedor invalido" }, { status: 400 });
+  }
+  let product;
+  try {
+    product = await prisma.product.create({
+      data: {
+        name: body.name.trim(),
+        description: body.description ?? null,
+        images: body.images ?? [],
+        videos: body.videos ?? [],
+        sizes: body.sizes ?? [],
+        wholesalePriceMin: body.wholesalePriceMin ?? null,
+        wholesalePriceMax: body.wholesalePriceMax ?? null,
+        retailPrice: body.retailPrice ?? null,
+        tags: body.tags ?? [],
+        categories: (body.categories ?? []).filter((c) => CATEGORY_SLUGS.includes(c)),
+        colors: normalizeColors(body.colors, body.images ?? []) as Prisma.InputJsonValue,
+        active: body.active ?? true,
+        minOrderQty: body.minOrderQty ?? 10,
+        readyToShip: body.readyToShip ?? true,
+        supplierId: body.supplierId || null,
+      },
+    });
+  } catch (e) {
+    // Ex.: corrida onde o fornecedor validado acima e apagado antes do create
+    // (FK violation P2003) — devolve 400 em vez de derrubar em 500.
+    return NextResponse.json({ error: e instanceof Error ? e.message : "falha ao criar produto" }, { status: 400 });
+  }
 
   const actor = await getCurrentUser();
   await writeAudit({

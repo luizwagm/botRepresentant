@@ -21,8 +21,11 @@ type Product = {
   active: boolean;
   minOrderQty: number;
   readyToShip: boolean;
+  supplierId: string | null;
   createdAt: string;
 };
+
+type SupplierOption = { id: string; name: string; active: boolean };
 
 type MediaKind = "images" | "videos";
 
@@ -42,6 +45,7 @@ type FormState = {
   active: boolean;
   minOrderQty: string;
   readyToShip: boolean;
+  supplierId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -59,10 +63,12 @@ const EMPTY_FORM: FormState = {
   active: true,
   minOrderQty: "10",
   readyToShip: true,
+  supplierId: "",
 };
 
 export default function CatalogoAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<MediaKind | null>(null);
@@ -74,11 +80,29 @@ export default function CatalogoAdmin() {
     setProducts(json.items);
   }, []);
 
+  const loadSuppliers = useCallback(async () => {
+    try {
+      // Todos (nao so ativos): ao editar um produto vinculado a um fornecedor
+      // que ficou inativo, ele precisa continuar aparecendo no seletor — senao
+      // o vinculo some da tela e parece "sem fornecedor".
+      const res = await fetch("/api/suppliers");
+      const json = await res.json();
+      if (res.ok) {
+        setSuppliers(
+          json.items.map((s: { id: string; name: string; active: boolean }) => ({ id: s.id, name: s.name, active: s.active })),
+        );
+      }
+    } catch {
+      // silencioso — o seletor so fica vazio
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       await load();
+      await loadSuppliers();
     })();
-  }, [load]);
+  }, [load, loadSuppliers]);
 
   function startEdit(p: Product) {
     setForm({
@@ -97,6 +121,7 @@ export default function CatalogoAdmin() {
       active: p.active,
       minOrderQty: p.minOrderQty?.toString() ?? "10",
       readyToShip: p.readyToShip ?? true,
+      supplierId: p.supplierId ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -198,6 +223,7 @@ export default function CatalogoAdmin() {
       active: form.active,
       minOrderQty: Math.max(1, parseInt(form.minOrderQty, 10) || 10),
       readyToShip: form.readyToShip,
+      supplierId: form.supplierId || null,
     };
     const res = form.id
       ? await fetch(`/api/products/${form.id}`, {
@@ -306,6 +332,26 @@ export default function CatalogoAdmin() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Fornecedor (uso interno) */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-700">
+              Fornecedor <span className="font-normal text-zinc-400">(interno — não aparece no catálogo público)</span>
+            </label>
+            <select
+              value={form.supplierId}
+              onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:max-w-sm"
+            >
+              <option value="">— Sem fornecedor —</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}{s.active ? "" : " (inativo)"}</option>
+              ))}
+            </select>
+            {suppliers.length === 0 && (
+              <p className="mt-1 text-xs text-zinc-400">Cadastre em <span className="font-medium">Fornecedores</span> pra vincular aqui.</p>
+            )}
           </div>
 
           {/* Fotos */}

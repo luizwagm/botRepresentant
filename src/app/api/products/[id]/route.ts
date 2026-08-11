@@ -24,6 +24,7 @@ const TRACKED = [
   "active",
   "minOrderQty",
   "readyToShip",
+  "supplierId",
 ] as const;
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -48,6 +49,7 @@ type PatchBody = {
   active?: boolean;
   minOrderQty?: number | null;
   readyToShip?: boolean;
+  supplierId?: string | null;
 };
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -60,7 +62,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const before = await prisma.product.findUnique({ where: { id } });
   if (!before) return NextResponse.json({ error: "produto nao encontrado" }, { status: 404 });
 
-  const data: Prisma.ProductUpdateInput = {};
+  // Unchecked* pra poder setar o FK escalar supplierId direto (o Checked so
+  // aceita a relacao `supplier: { connect/disconnect }`).
+  const data: Prisma.ProductUncheckedUpdateInput = {};
   if (body.name !== undefined) data.name = body.name;
   if (body.description !== undefined) data.description = body.description ?? null;
   if (body.images !== undefined) data.images = { set: body.images };
@@ -83,6 +87,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.active !== undefined) data.active = body.active;
   if (body.minOrderQty !== undefined) data.minOrderQty = body.minOrderQty ?? 10;
   if (body.readyToShip !== undefined) data.readyToShip = body.readyToShip;
+  if (body.supplierId !== undefined) {
+    if (body.supplierId) {
+      const exists = await prisma.supplier.findUnique({ where: { id: body.supplierId }, select: { id: true } });
+      if (!exists) return NextResponse.json({ error: "fornecedor invalido" }, { status: 400 });
+    }
+    data.supplierId = body.supplierId || null;
+  }
 
   try {
     const updated = await prisma.product.update({ where: { id }, data });

@@ -109,11 +109,37 @@ model Product {
   active            Boolean  @default(true)
   minOrderQty       Int      @default(10) @map("min_order_qty")  // pedido minimo por produto
   readyToShip       Boolean  @default(true) @map("ready_to_ship") // pronta-entrega
+  supplierId        String?   @map("supplier_id") // fornecedor/faccao de origem (gestao interna)
+  supplier          Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@index([active])
+  @@index([supplierId])
   @@map("products")
+}
+
+// Fornecedor / faccao que fornece as pecas da vitrine. Uso interno (admin) —
+// nao aparece no catalogo publico. Um fornecedor tem varios produtos.
+model Supplier {
+  id          String    @id @default(cuid())
+  name        String
+  contactName String?   @map("contact_name")
+  phone       String?
+  whatsapp    String?
+  email       String?
+  city        String?
+  state       String?   @db.Char(2)
+  productLine String?   @map("product_line") // o que fornece (ex.: "jeans masculino")
+  notes       String?   @db.Text
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  products    Product[]
+
+  @@index([active])
+  @@map("suppliers")
 }
 
 // Pagina institucional "Sobre nos" — conteudo unico (singleton, id fixo "about")
