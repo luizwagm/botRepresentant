@@ -15,8 +15,8 @@ module.exports = {
       env: { NODE_ENV: "production", TZ: "America/Sao_Paulo" },
       autorestart: true,
       max_restarts: 10,
-      error_file: "/var/log/pm2/atacado-error.log",
-      out_file: "/var/log/pm2/atacado-out.log",
+      // Logs no padrão do pm2 (~/.pm2/logs) — um caminho em /var/log exigiria
+      // root pra criar o diretório e o start falharia como usuário `deploy`.
     },
     {
       // Worker da prospecção: mantém a sessão do WhatsApp e roda o motor.
@@ -31,8 +31,6 @@ module.exports = {
       // com erro. Reiniciar em laço não resolve — precisa de QR novo.
       max_restarts: 5,
       min_uptime: "30s",
-      error_file: "/var/log/pm2/outreach-error.log",
-      out_file: "/var/log/pm2/outreach-out.log",
     },
   ],
 };
