@@ -71,6 +71,8 @@ model Lead {
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
   messages        MessageLog[]
+  conversation    Conversation?
+  outreachTasks   OutreachTask[]
 
   @@index([city, state])
   @@index([state])
@@ -157,6 +159,140 @@ model AboutPage {
   @@map("about_pages")
 }
 
+// ==========================================================================
+//  Prospeccao automatizada — o "core" que gere agendamento, envio, conversa
+//  com IA, follow-ups e passagem pro humano.
+// ==========================================================================
+
+enum ConversationStatus {
+  AGENDADO        // tem contato agendado, ainda nao enviado
+  ENVIADO         // 1a mensagem saiu, aguardando resposta
+  RESPONDEU       // a loja respondeu — IA conduz a conversa
+  EM_NEGOCIACAO   // sinalizou interesse concreto
+  ASSUMIDO_HUMANO // humano assumiu (IA desligada nesta conversa)
+  SEM_RESPOSTA    // esgotou os follow-ups (5 dias) sem resposta
+  ENCERRADO       // recusou / concluido
+  FALHOU          // erro de envio persistente
+}
+
+enum MessageDirection {
+  ENTRADA // recebida da loja
+  SAIDA   // enviada por nos (IA ou humano)
+}
+
+enum OutreachTaskStatus {
+  PENDENTE
+  ENVIADO
+  FALHOU
+  CANCELADO
+}
+
+/// Conversa com uma loja (1 por lead). Guarda o estado da maquina.
+model Conversation {
+  id             String             @id @default(cuid())
+  leadId         String             @unique @map("lead_id")
+  status         ConversationStatus @default(AGENDADO)
+  /// Kill-switch por conversa: false = IA nao responde nem faz follow-up.
+  aiEnabled      Boolean            @default(true) @map("ai_enabled")
+  /// Quem assumiu manualmente (null = ninguem assumiu).
+  humanOwnerId   String?            @map("human_owner_id")
+  /// Quantos follow-ups ja sairam (0..4 — 24h, 48h, 72h, 5d).
+  followUpStage  Int                @default(0) @map("follow_up_stage")
+  /// Quando o motor deve agir de novo (proximo follow-up). Null = nada agendado.
+  nextActionAt   DateTime?          @map("next_action_at")
+  lastInboundAt  DateTime?          @map("last_inbound_at")
+  lastOutboundAt DateTime?          @map("last_outbound_at")
+  closedAt       DateTime?          @map("closed_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  lead           Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  humanOwner     User?                 @relation(fields: [humanOwnerId], references: [id], onDelete: SetNull)
+  messages       ConversationMessage[]
+  tasks          OutreachTask[]
+
+  @@index([status])
+  @@index([nextActionAt])
+  @@map("conversations")
+}
+
+/// Cada mensagem trocada (entrada e saida), pra IA ter o fio da conversa.
+model ConversationMessage {
+  id             String           @id @default(cuid())
+  conversationId String           @map("conversation_id")
+  direction      MessageDirection
+  body           String           @db.Text
+  /// true = redigida pela IA; false = escrita/enviada por humano.
+  viaAi          Boolean          @default(false) @map("via_ai")
+  /// id da mensagem no canal (WhatsApp), pra deduplicar webhooks/eventos.
+  externalId     String?          @unique @map("external_id")
+  error          String?          @db.Text
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("conversation_messages")
+}
+
+/// Lote de agendamento ("10 contatos as 09h de 12/08").
+model OutreachBatch {
+  id           String         @id @default(cuid())
+  scheduledFor DateTime       @map("scheduled_for")
+  note         String?
+  createdById  String?        @map("created_by_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  createdBy    User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  tasks        OutreachTask[]
+
+  @@index([scheduledFor])
+  @@map("outreach_batches")
+}
+
+/// Um contato agendado pra uma loja. O motor varre por scheduledFor.
+model OutreachTask {
+  id             String             @id @default(cuid())
+  batchId        String?            @map("batch_id")
+  leadId         String             @map("lead_id")
+  conversationId String?            @map("conversation_id")
+  scheduledFor   DateTime           @map("scheduled_for")
+  status         OutreachTaskStatus @default(PENDENTE)
+  attempts       Int                @default(0)
+  lastError      String?            @db.Text @map("last_error")
+  sentAt         DateTime?          @map("sent_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  batch          OutreachBatch?     @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  lead           Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversation   Conversation?      @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledFor])
+  @@index([leadId])
+  @@map("outreach_tasks")
+}
+
+/// Configuracao unica (singleton "ai") do vendedor de IA e das travas de envio.
+model AiSettings {
+  id              String   @id @default("ai")
+  /// Liga/desliga a automacao inteira (kill-switch global).
+  enabled         Boolean  @default(false)
+  /// Tom de voz e roteiro — editaveis pelo painel, nao mensagens fixas.
+  tone            String   @db.Text
+  scriptGuidance  String   @db.Text @map("script_guidance")
+  /// Travas anti-banimento (o canal nao-oficial pune volume e horario ruim).
+  dailyCap        Int      @default(30) @map("daily_cap")
+  minGapSeconds   Int      @default(45) @map("min_gap_seconds")
+  maxGapSeconds   Int      @default(180) @map("max_gap_seconds")
+  windowStartHour Int      @default(9) @map("window_start_hour")
+  windowEndHour   Int      @default(18) @map("window_end_hour")
+  sendOnWeekends  Boolean  @default(false) @map("send_on_weekends")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_settings")
+}
+
 enum Role {
   ADMIN
   VENDEDOR
@@ -173,7 +309,9 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  auditLogs    AuditLog[]
+  auditLogs      AuditLog[]
+  conversations  Conversation[]
+  outreachBatches OutreachBatch[]
 
   @@map("users")
 }

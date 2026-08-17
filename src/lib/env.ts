@@ -22,7 +22,7 @@ export const env = {
   databaseUrl: required("DATABASE_URL"),
   anthropicApiKey: required("ANTHROPIC_API_KEY"),
   googlePlacesApiKey: required("GOOGLE_PLACES_API_KEY"),
-  claudeModel: optional("CLAUDE_MODEL", "claude-sonnet-4-6"),
+  claudeModel: optional("CLAUDE_MODEL", "claude-opus-5"),
   luizWhatsapp: optional("LUIZ_WHATSAPP", ""),
   brandName: optional("BRAND_NAME", "Jeans Direto do Agreste"),
   // URL base publica (pra preview de link/og:image). Em producao: https://atacado.luizaugust.me

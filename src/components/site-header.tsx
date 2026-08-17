@@ -24,6 +24,7 @@ export default function SiteHeader({ me }: { me: Me | null }) {
           <nav className="flex items-center gap-1 text-sm font-medium text-zinc-600">
             <Link href="/leads" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Leads</Link>
             <Link href="/funil" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Funil</Link>
+            <Link href="/prospeccao" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Prospecção</Link>
             <Link href="/catalogo" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Catálogo</Link>
             <Link href="/fornecedores" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Fornecedores</Link>
             <Link href="/conteudo" className="rounded-md px-3 py-1.5 hover:bg-zinc-100 hover:text-zinc-900">Sobre</Link>

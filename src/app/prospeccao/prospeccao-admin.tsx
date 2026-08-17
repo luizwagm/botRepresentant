@@ -1,0 +1,765 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  CONVERSATION_STATUSES,
+  CONVERSATION_STATUS_COLOR,
+  CONVERSATION_STATUS_LABEL,
+  type ConversationStatusValue,
+} from "@/lib/outreach/labels";
+import { BR_STATES } from "@/lib/labels";
+import { BR_CITIES } from "@/lib/br-cities";
+
+type Aba = "conversas" | "agendar" | "config";
+
+type Conversation = {
+  id: string;
+  status: ConversationStatusValue;
+  aiEnabled: boolean;
+  followUpStage: number;
+  nextActionAt: string | null;
+  lastInboundAt: string | null;
+  lead: { id: string; name: string; city: string; state: string; whatsapp: string | null };
+  owner: string | null;
+  messageCount: number;
+  lastMessage: { body: string; direction: "ENTRADA" | "SAIDA" } | null;
+};
+
+type Message = {
+  id: string;
+  direction: "ENTRADA" | "SAIDA";
+  body: string;
+  viaAi: boolean;
+  createdAt: string;
+};
+
+type ConversationDetail = Conversation & { messages: Message[] };
+
+type Settings = {
+  enabled: boolean;
+  tone: string;
+  scriptGuidance: string;
+  dailyCap: number;
+  minGapSeconds: number;
+  maxGapSeconds: number;
+  windowStartHour: number;
+  windowEndHour: number;
+  sendOnWeekends: boolean;
+};
+
+type Lead = { id: string; name: string; city: string; state: string; whatsapp: string | null };
+
+type Batch = {
+  id: string;
+  scheduledFor: string;
+  note: string | null;
+  createdBy: string | null;
+  total: number;
+  counts: { PENDENTE: number; ENVIADO: number; FALHOU: number; CANCELADO: number };
+};
+
+function fmt(d: string | null): string {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+export default function ProspeccaoAdmin() {
+  const [aba, setAba] = useState<Aba>("conversas");
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/outreach/settings");
+      if (res.ok) setSettings((await res.json()) as Settings);
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      await loadSettings();
+    })();
+  }, [loadSettings]);
+
+  async function toggleAutomacao(enabled: boolean) {
+    const res = await fetch("/api/outreach/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    if (res.ok) setSettings((await res.json()) as Settings);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Chave geral */}
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 shadow-sm ${
+          settings?.enabled ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-white"
+        }`}
+      >
+        <div>
+          <div className="text-sm font-semibold text-zinc-900">
+            Automação {settings?.enabled ? "LIGADA" : "desligada"}
+          </div>
+          <p className="mt-0.5 text-xs text-zinc-600">
+            {settings?.enabled
+              ? "O sistema está enviando e respondendo sozinho, dentro das travas configuradas."
+              : "Nada é enviado enquanto estiver desligada. Os agendamentos ficam esperando."}
+          </p>
+        </div>
+        <button
+          onClick={() => toggleAutomacao(!settings?.enabled)}
+          disabled={!settings}
+          className={`rounded-md px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+            settings?.enabled ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
+        >
+          {settings?.enabled ? "Desligar tudo" : "Ligar automação"}
+        </button>
+      </div>
+
+      {/* Abas */}
+      <div className="flex gap-1 border-b border-zinc-200">
+        {(
+          [
+            ["conversas", "Conversas"],
+            ["agendar", "Agendar contatos"],
+            ["config", "Vendedor de IA"],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setAba(k)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
+              aba === k
+                ? "border-indigo-600 text-indigo-700"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {aba === "conversas" && <Conversas />}
+      {aba === "agendar" && <Agendar />}
+      {aba === "config" && settings && <Config settings={settings} onSaved={setSettings} />}
+    </div>
+  );
+}
+
+// ==========================================================================
+//  Conversas
+// ==========================================================================
+function Conversas() {
+  const [items, setItems] = useState<Conversation[]>([]);
+  const [filtro, setFiltro] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [aberta, setAberta] = useState<ConversationDetail | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = filtro ? `?status=${filtro}` : "";
+      const res = await fetch(`/api/outreach/conversations${qs}`);
+      const json = await res.json();
+      if (res.ok) setItems(json.items);
+    } catch {
+      /* silencioso */
+    } finally {
+      setLoading(false);
+    }
+  }, [filtro]);
+
+  useEffect(() => {
+    void (async () => {
+      await load();
+    })();
+  }, [load]);
+
+  async function abrir(id: string) {
+    const res = await fetch(`/api/outreach/conversations/${id}`);
+    if (res.ok) setAberta((await res.json()) as ConversationDetail);
+  }
+
+  async function acao(id: string, action: "assumir" | "ligar_ia" | "desligar_ia") {
+    await fetch(`/api/outreach/conversations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    await load();
+    await abrir(id);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+        >
+          <option value="">Todos os status</option>
+          {CONVERSATION_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {CONVERSATION_STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => void load()}
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50"
+        >
+          Atualizar
+        </button>
+        <span className="text-xs text-zinc-500">{loading ? "Carregando..." : `${items.length} conversa(s)`}</span>
+      </div>
+
+      {items.length === 0 && !loading ? (
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-12 text-center text-sm text-zinc-500">
+          Nenhuma conversa ainda. Agende contatos na aba ao lado.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <table className="min-w-full divide-y divide-zinc-200 text-sm">
+            <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <tr>
+                <th className="px-4 py-3">Loja</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Última mensagem</th>
+                <th className="px-4 py-3">IA</th>
+                <th className="px-4 py-3">Próxima ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {items.map((c) => (
+                <tr key={c.id} onClick={() => void abrir(c.id)} className="cursor-pointer hover:bg-indigo-50/50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-zinc-900">{c.lead.name}</div>
+                    <div className="text-xs text-zinc-500">
+                      {c.lead.city}/{c.lead.state} · {c.messageCount} msg
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${CONVERSATION_STATUS_COLOR[c.status]}`}
+                    >
+                      {CONVERSATION_STATUS_LABEL[c.status]}
+                    </span>
+                    {c.owner && <div className="mt-1 text-[11px] text-zinc-500">{c.owner}</div>}
+                  </td>
+                  <td className="max-w-xs px-4 py-3">
+                    {c.lastMessage ? (
+                      <div className="truncate text-xs text-zinc-600">
+                        <span className={c.lastMessage.direction === "ENTRADA" ? "text-amber-700" : "text-zinc-400"}>
+                          {c.lastMessage.direction === "ENTRADA" ? "loja: " : "nós: "}
+                        </span>
+                        {c.lastMessage.body}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-zinc-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-medium ${c.aiEnabled ? "text-emerald-700" : "text-zinc-400"}`}>
+                      {c.aiEnabled ? "ligada" : "desligada"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-zinc-600">{fmt(c.nextActionAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {aberta && <ConversaModal conv={aberta} onClose={() => setAberta(null)} onAcao={acao} />}
+    </div>
+  );
+}
+
+function ConversaModal({
+  conv,
+  onClose,
+  onAcao,
+}: {
+  conv: ConversationDetail;
+  onClose: () => void;
+  onAcao: (id: string, a: "assumir" | "ligar_ia" | "desligar_ia") => Promise<void>;
+}) {
+  const wa = conv.lead.whatsapp;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-zinc-200 px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold">{conv.lead.name}</h2>
+            <p className="mt-0.5 text-sm text-zinc-500">
+              {conv.lead.city}/{conv.lead.state} ·{" "}
+              <span className={`font-medium ${conv.aiEnabled ? "text-emerald-700" : "text-zinc-500"}`}>
+                IA {conv.aiEnabled ? "ligada" : "desligada"}
+              </span>
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Fechar" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100">
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-2 overflow-y-auto bg-zinc-50 px-6 py-4">
+          {conv.messages.length === 0 && <p className="text-sm text-zinc-500">Nenhuma mensagem ainda.</p>}
+          {conv.messages.map((m) => (
+            <div key={m.id} className={`flex ${m.direction === "SAIDA" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                  m.direction === "SAIDA" ? "bg-emerald-600 text-white" : "bg-white text-zinc-800 ring-1 ring-zinc-200"
+                }`}
+              >
+                <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                <div className={`mt-1 text-[10px] ${m.direction === "SAIDA" ? "text-emerald-100" : "text-zinc-400"}`}>
+                  {fmt(m.createdAt)}
+                  {m.direction === "SAIDA" && (m.viaAi ? " · IA" : " · você")}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3 border-t border-zinc-200 px-6 py-4">
+          <p className="text-xs text-zinc-500">
+            Para responder, escreva pelo WhatsApp do celular — o sistema registra sua mensagem e desliga a IA
+            desta conversa automaticamente.
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {wa && (
+              <a
+                href={`https://wa.me/${wa}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                Abrir no WhatsApp
+              </a>
+            )}
+            {conv.aiEnabled ? (
+              <>
+                <button
+                  onClick={() => void onAcao(conv.id, "desligar_ia")}
+                  className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
+                >
+                  Desligar IA
+                </button>
+                <button
+                  onClick={() => void onAcao(conv.id, "assumir")}
+                  className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                >
+                  Assumir conversa
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => void onAcao(conv.id, "ligar_ia")}
+                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              >
+                Religar IA
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================================================
+//  Agendar
+// ==========================================================================
+function Agendar() {
+  const [state, setState] = useState("");
+  const [city, setCity] = useState("");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [quando, setQuando] = useState("");
+  const [nota, setNota] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [batches, setBatches] = useState<Batch[]>([]);
+
+  const cidades = useMemo(() => (state ? BR_CITIES.filter((c) => c.state === state) : []), [state]);
+
+  const loadBatches = useCallback(async () => {
+    try {
+      const res = await fetch("/api/outreach/schedule");
+      const json = await res.json();
+      if (res.ok) setBatches(json.items);
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      await loadBatches();
+    })();
+  }, [loadBatches]);
+
+  async function buscarLeads() {
+    setBuscando(true);
+    setErro(null);
+    try {
+      const p = new URLSearchParams({ has_whatsapp: "1", funnel_stage: "NOVO_LEAD", limit: "100" });
+      if (state) p.set("state", state);
+      if (city) p.set("city", city);
+      const res = await fetch(`/api/leads?${p.toString()}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Falha na busca.");
+      setLeads(json.items);
+      setSel(new Set());
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha na busca.");
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  async function agendar() {
+    if (sel.size === 0) {
+      setErro("Selecione ao menos uma loja.");
+      return;
+    }
+    if (!quando) {
+      setErro("Escolha a data e a hora.");
+      return;
+    }
+    setSalvando(true);
+    setErro(null);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/outreach/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadIds: [...sel],
+          scheduledFor: new Date(quando).toISOString(),
+          note: nota,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Falha ao agendar.");
+      setMsg(`${json.created} contato(s) agendado(s).${json.skipped > 0 ? ` ${json.skipped} ignorado(s) (sem zap, opt-out ou já na fila).` : ""}`);
+      setSel(new Set());
+      await loadBatches();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao agendar.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-3 text-base font-semibold">1. Escolha as lojas</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <select
+            value={state}
+            onChange={(e) => {
+              setState(e.target.value);
+              setCity("");
+            }}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">UF (todas)</option>
+            {BR_STATES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            disabled={!state}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm disabled:bg-zinc-50"
+          >
+            <option value="">{state ? "Cidade (todas)" : "Escolha a UF"}</option>
+            {cidades.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => void buscarLeads()}
+            disabled={buscando}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {buscando ? "Buscando..." : "Buscar lojas novas"}
+          </button>
+          <div className="flex items-center text-xs text-zinc-500">
+            {leads.length > 0 && `${sel.size} de ${leads.length} selecionadas`}
+          </div>
+        </div>
+
+        {leads.length > 0 && (
+          <>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => setSel(new Set(leads.map((l) => l.id)))}
+                className="text-xs font-medium text-indigo-600 hover:underline"
+              >
+                Selecionar todas
+              </button>
+              <button onClick={() => setSel(new Set())} className="text-xs font-medium text-zinc-500 hover:underline">
+                Limpar
+              </button>
+            </div>
+            <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-zinc-200">
+              {leads.map((l) => (
+                <label key={l.id} className="flex cursor-pointer items-center gap-2 border-b border-zinc-100 px-3 py-2 text-sm last:border-0 hover:bg-zinc-50">
+                  <input
+                    type="checkbox"
+                    checked={sel.has(l.id)}
+                    onChange={(e) => {
+                      const next = new Set(sel);
+                      if (e.target.checked) next.add(l.id);
+                      else next.delete(l.id);
+                      setSel(next);
+                    }}
+                    className="h-4 w-4 rounded border-zinc-300 text-indigo-600"
+                  />
+                  <span className="font-medium text-zinc-800">{l.name}</span>
+                  <span className="text-xs text-zinc-500">{l.city}/{l.state}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-3 text-base font-semibold">2. Quando enviar</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-700">Data e hora</label>
+            <input
+              type="datetime-local"
+              value={quando}
+              onChange={(e) => setQuando(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-zinc-700">Observação (opcional)</label>
+            <input
+              type="text"
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="ex.: lojas de Caruaru — lote da manhã"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+        {erro && <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</div>}
+        {msg && <div className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{msg}</div>}
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => void agendar()}
+            disabled={salvando}
+            className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {salvando ? "Agendando..." : `Agendar ${sel.size} contato(s)`}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-base font-semibold">Agendamentos</h2>
+        {batches.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
+            Nenhum agendamento ainda.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <table className="min-w-full divide-y divide-zinc-200 text-sm">
+              <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3">Quando</th>
+                  <th className="px-4 py-3">Observação</th>
+                  <th className="px-4 py-3">Andamento</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {batches.map((b) => (
+                  <tr key={b.id}>
+                    <td className="px-4 py-3 text-zinc-800">{fmt(b.scheduledFor)}</td>
+                    <td className="px-4 py-3 text-zinc-600">{b.note ?? <span className="text-zinc-400">—</span>}</td>
+                    <td className="px-4 py-3 text-xs text-zinc-600">
+                      {b.counts.ENVIADO}/{b.total} enviados
+                      {b.counts.PENDENTE > 0 && ` · ${b.counts.PENDENTE} na fila`}
+                      {b.counts.FALHOU > 0 && ` · ${b.counts.FALHOU} falharam`}
+                      {b.counts.CANCELADO > 0 && ` · ${b.counts.CANCELADO} cancelados`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================================================
+//  Configuração do vendedor de IA
+// ==========================================================================
+function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settings) => void }) {
+  const [form, setForm] = useState<Settings>(settings);
+  const [salvando, setSalvando] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  function patch(p: Partial<Settings>) {
+    setForm((f) => ({ ...f, ...p }));
+    setMsg(null);
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/outreach/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Falha ao salvar.");
+      onSaved(json as Settings);
+      setForm(json as Settings);
+      setMsg("Salvo.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Falha ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold">Tom de voz</h2>
+        <p className="mt-1 text-xs text-zinc-500">Como o vendedor fala. Não são mensagens prontas — a IA escreve cada uma olhando a conversa.</p>
+        <textarea
+          value={form.tone}
+          onChange={(e) => patch({ tone: e.target.value })}
+          rows={10}
+          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-xs"
+        />
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold">Ideia de roteiro</h2>
+        <p className="mt-1 text-xs text-zinc-500">O que a conversa precisa cobrir e onde ela deve parar e chamar você.</p>
+        <textarea
+          value={form.scriptGuidance}
+          onChange={(e) => patch({ scriptGuidance: e.target.value })}
+          rows={12}
+          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-xs"
+        />
+      </div>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-amber-900">Travas de envio</h2>
+        <p className="mt-1 text-xs text-amber-800">
+          Volume alto, horário ruim e ritmo robótico são o que mais queima número no WhatsApp. Comece devagar
+          (10–20/dia) e vá subindo ao longo de semanas.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Campo label="Máximo por dia">
+            <input
+              type="number"
+              min={1}
+              value={form.dailyCap}
+              onChange={(e) => patch({ dailyCap: Number(e.target.value) })}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </Campo>
+          <Campo label="Intervalo mínimo (seg)">
+            <input
+              type="number"
+              min={5}
+              value={form.minGapSeconds}
+              onChange={(e) => patch({ minGapSeconds: Number(e.target.value) })}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </Campo>
+          <Campo label="Intervalo máximo (seg)">
+            <input
+              type="number"
+              min={5}
+              value={form.maxGapSeconds}
+              onChange={(e) => patch({ maxGapSeconds: Number(e.target.value) })}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </Campo>
+          <Campo label="Enviar a partir das">
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={form.windowStartHour}
+              onChange={(e) => patch({ windowStartHour: Number(e.target.value) })}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </Campo>
+          <Campo label="Enviar até as">
+            <input
+              type="number"
+              min={1}
+              max={24}
+              value={form.windowEndHour}
+              onChange={(e) => patch({ windowEndHour: Number(e.target.value) })}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </Campo>
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={form.sendOnWeekends}
+                onChange={(e) => patch({ sendOnWeekends: e.target.checked })}
+                className="h-4 w-4 rounded border-zinc-300 text-indigo-600"
+              />
+              Enviar em fim de semana
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {msg && <div className="rounded-md bg-zinc-100 px-3 py-2 text-sm text-zinc-700">{msg}</div>}
+      <div className="flex justify-end">
+        <button
+          onClick={() => void salvar()}
+          disabled={salvando}
+          className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {salvando ? "Salvando..." : "Salvar configuração"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-zinc-700">{label}</label>
+      {children}
+    </div>
+  );
+}

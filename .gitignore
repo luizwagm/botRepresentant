@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sessao do WhatsApp do worker (credenciais do numero — NUNCA versionar)
+/.wa-session/
