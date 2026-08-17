@@ -15,7 +15,7 @@
     "seed:admin": "tsx scripts/ensure-admin.ts",
     "backfill:business-kind": "tsx scripts/backfill-business-kind.ts",
     "backfill:sem-whatsapp": "tsx scripts/backfill-sem-whatsapp.ts",
-    "outreach:worker": "tsx scripts/outreach-worker.ts"
+    "outreach:worker": "tsx scripts/outreach-worker.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
