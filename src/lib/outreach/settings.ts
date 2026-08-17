@@ -72,9 +72,14 @@ export async function getAiSettings(): Promise<AiSettings> {
   };
 }
 
+/** Teto de tamanho do prompt editável — evita inflar o custo de cada mensagem. */
+const MAX_PROMPT_CHARS = 4000;
+
 export async function saveAiSettings(patch: Partial<AiSettings>): Promise<AiSettings> {
   const current = await getAiSettings();
   const next: AiSettings = { ...current, ...patch };
+  next.tone = next.tone.slice(0, MAX_PROMPT_CHARS);
+  next.scriptGuidance = next.scriptGuidance.slice(0, MAX_PROMPT_CHARS);
   // Sanidade: janela e ritmo invertidos travariam o motor pra sempre.
   next.dailyCap = Math.max(1, Math.min(500, next.dailyCap));
   next.minGapSeconds = Math.max(5, next.minGapSeconds);
@@ -90,16 +95,36 @@ export async function saveAiSettings(patch: Partial<AiSettings>): Promise<AiSett
   return next;
 }
 
+/** Fuso do negocio — nao do servidor (que costuma rodar em UTC). */
+export const BUSINESS_TZ = process.env.OUTREACH_TZ ?? "America/Sao_Paulo";
+
+/** Hora e dia da semana no fuso do negocio, independente do fuso do host. */
+function localParts(now: Date): { hour: number; weekday: number } {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: BUSINESS_TZ,
+    hour: "2-digit",
+    hour12: false,
+    weekday: "short",
+  });
+  const parts = fmt.formatToParts(now);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const wd = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
+  const dias = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return { hour, weekday: Math.max(0, dias.indexOf(wd)) };
+}
+
 /**
  * Janela de envio: fora do horario comercial (ou no fim de semana, se
  * desligado) nao se dispara nada — disparo de madrugada e o jeito mais rapido
  * de queimar o numero e irritar lojista.
+ *
+ * Usa o fuso do NEGOCIO: com o servidor em UTC, getHours() daria 21h quando no
+ * Brasil sao 18h, e o motor mandaria mensagem fora de hora.
  */
 export function withinSendWindow(s: AiSettings, now: Date): boolean {
-  const day = now.getDay(); // 0 = domingo
-  if (!s.sendOnWeekends && (day === 0 || day === 6)) return false;
-  const h = now.getHours();
-  return h >= s.windowStartHour && h < s.windowEndHour;
+  const { hour, weekday } = localParts(now);
+  if (!s.sendOnWeekends && (weekday === 0 || weekday === 6)) return false;
+  return hour >= s.windowStartHour && hour < s.windowEndHour;
 }
 
 /** Intervalo aleatorio entre envios (ritmo humano, nao metronomo). */

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { BUSINESS_KINDS, FUNNEL_STAGES, STORE_TYPES } from "@/lib/labels";
+import { normalizeBrazilPhone } from "@/lib/phone";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp, diffFields } from "@/lib/audit";
 
@@ -64,7 +65,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.notes !== undefined) data.notes = body.notes || null;
   if (body.foundedAt !== undefined) data.foundedAt = parseDate(body.foundedAt);
   if (body.instagram !== undefined) data.instagram = body.instagram || null;
-  if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp || null;
+  // Normaliza SEMPRE: o motor de prospecção procura o lead por igualdade exata
+  // do número em E.164. Um "(81) 99999-9999" salvo cru aqui deixaria toda
+  // resposta dessa loja invisível pro sistema.
+  if (body.whatsapp !== undefined) {
+    data.whatsapp = body.whatsapp ? normalizeBrazilPhone(body.whatsapp) : null;
+  }
   if (body.funnelStage !== undefined) {
     if (!FUNNEL_STAGES.includes(body.funnelStage as (typeof FUNNEL_STAGES)[number])) {
       return NextResponse.json({ error: "funnelStage invalido" }, { status: 400 });

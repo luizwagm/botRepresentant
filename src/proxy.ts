@@ -15,7 +15,17 @@ const PUBLIC_PREFIXES = [
 ];
 
 // Rotas só pra ADMIN
-const ADMIN_PREFIXES = ["/usuarios", "/auditoria", "/api/users", "/api/audit"];
+// /prospeccao e /api/outreach são de ADMIN: quem edita o tom/roteiro está
+// reescrevendo o que a IA fala com cliente real em nome da fábrica, e quem
+// liga a chave dispara mensagem de verdade.
+const ADMIN_PREFIXES = [
+  "/usuarios",
+  "/auditoria",
+  "/prospeccao",
+  "/api/users",
+  "/api/audit",
+  "/api/outreach",
+];
 
 function matches(pathname: string, list: string[]): boolean {
   return list.some((p) => pathname === p || pathname.startsWith(p + "/"));

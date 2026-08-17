@@ -164,7 +164,10 @@ async function connect(): Promise<void> {
         console.error(
           `A sessão foi encerrada no aparelho. Apague ${SESSION_DIR} e rode de novo pra ler o QR.`,
         );
+        // Sai com erro em vez de ficar de pé sem canal: assim o pm2 registra a
+        // queda e o painel mostra "canal offline" em vez de silêncio.
         parando = true;
+        void prisma.$disconnect().finally(() => process.exit(1));
         return;
       }
       if (!parando) {
@@ -178,11 +181,29 @@ async function connect(): Promise<void> {
   });
 
   s.ev.on("messages.upsert", (ev) => {
-    if (ev.type !== "notify") return;
+    // "notify" = chegou agora; "append" = backlog entregue na reconexão. Sem
+    // aceitar 'append', toda resposta que chegasse com o worker fora do ar
+    // seria descartada em silêncio. A deduplicação (Set + UNIQUE no banco)
+    // cobre a reentrega.
+    if (ev.type !== "notify" && ev.type !== "append") return;
+
     for (const msg of ev.messages) {
       const jid = msg.key?.remoteJid;
-      // Só conversa 1-a-1: ignora grupo, status e broadcast.
-      if (!jid || !jid.endsWith("@s.whatsapp.net")) continue;
+      if (!jid) continue;
+
+      // Só conversa 1-a-1. Grupo/status/broadcast ficam de fora — mas com log,
+      // pra perda deixar de ser invisível.
+      const ehPessoa = jid.endsWith("@s.whatsapp.net") || jid.endsWith("@lid");
+      if (!ehPessoa) continue;
+
+      // Endereçamento LID não carrega o telefone; o número real vem no
+      // remoteJidAlt. Sem ele não dá pra achar o lead.
+      const jidTelefone = jid.endsWith("@lid") ? (msg.key?.remoteJidAlt ?? null) : jid;
+      if (!jidTelefone) {
+        console.warn(`[wa] mensagem em LID sem número (${jid}) — descartada.`);
+        continue;
+      }
+
       const text = readText(msg);
       if (!text?.trim()) continue;
       const externalId = msg.key?.id ?? null;
@@ -192,20 +213,67 @@ async function connect(): Promise<void> {
         // o motor ainda deduplica por externalId como segunda barreira).
         if (externalId && nossos.has(externalId)) continue;
         // Senão, foi o humano digitando no celular — ele assume a conversa.
-        void handleHumanEcho({ toE164: fromJid(jid), body: text.trim(), externalId }).catch((e) =>
-          console.error("[outreach] erro no eco humano:", e),
+        enfileirar(() =>
+          handleHumanEcho({ toE164: fromJid(jidTelefone), body: text.trim(), externalId }),
         );
         continue;
       }
 
-      void handleInbound({
-        fromE164: fromJid(jid),
-        body: text.trim(),
-        externalId,
-        channel,
-      }).catch((e) => console.error("[outreach] erro no inbound:", e));
+      bufferizarEntrada(jidTelefone, text.trim(), externalId);
     }
   });
+}
+
+// --------------------------------------------------------------------------
+//  Fila de processamento
+//
+//  Duas garantias que faltavam e faziam a IA responder em rajada:
+//   1. DEBOUNCE por contato — lojista manda "oi", "trabalha com jeans?",
+//      "qual o mínimo?" em 3 mensagens picadas. Sem juntar, saíam 3 respostas
+//      simultâneas, cada uma lendo o histórico antes de a irmã gravar.
+//   2. FILA única — nada é processado em paralelo, então dois envios nunca
+//      saem no mesmo segundo e o teto diário não é furado por leitura suja.
+// --------------------------------------------------------------------------
+const DEBOUNCE_MS = 6_000;
+
+type Buffer = { textos: string[]; externalId: string | null; timer: NodeJS.Timeout };
+const buffers = new Map<string, Buffer>();
+
+let cadeia: Promise<unknown> = Promise.resolve();
+
+function enfileirar(tarefa: () => Promise<void>): void {
+  cadeia = cadeia
+    .then(tarefa)
+    .catch((e) => console.error("[outreach] erro na fila:", e instanceof Error ? e.message : e));
+}
+
+function bufferizarEntrada(jid: string, texto: string, externalId: string | null): void {
+  const atual = buffers.get(jid);
+  if (atual) {
+    clearTimeout(atual.timer);
+    atual.textos.push(texto);
+    atual.timer = setTimeout(() => despachar(jid), DEBOUNCE_MS);
+    return;
+  }
+  buffers.set(jid, {
+    textos: [texto],
+    externalId, // o id da 1ª mensagem serve de chave de deduplicação
+    timer: setTimeout(() => despachar(jid), DEBOUNCE_MS),
+  });
+}
+
+function despachar(jid: string): void {
+  const buf = buffers.get(jid);
+  if (!buf) return;
+  buffers.delete(jid);
+  enfileirar(() =>
+    handleInbound({
+      fromE164: fromJid(jid),
+      body: buf.textos.join("\n"),
+      externalId: buf.externalId,
+      channel,
+    }),
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -231,9 +299,20 @@ async function loop(): Promise<void> {
   }
 }
 
+let lacoAtivo: Promise<void> | null = null;
+
+/** Encerra drenando o que está em andamento — não corta mensagem no meio. */
 async function shutdown(): Promise<void> {
+  if (parando) return;
   parando = true;
-  console.log("Encerrando worker...");
+  console.log("Encerrando worker (aguardando envio em andamento)...");
+  const limite = new Promise<void>((r) => setTimeout(r, 15_000));
+  await Promise.race([Promise.allSettled([lacoAtivo, cadeia]).then(() => undefined), limite]);
+  try {
+    await sock?.end(undefined);
+  } catch {
+    /* já caiu */
+  }
   await prisma.$disconnect();
   process.exit(0);
 }
@@ -243,7 +322,8 @@ process.on("SIGTERM", () => void shutdown());
 async function main(): Promise<void> {
   console.log("Motor de prospecção iniciando...");
   await connect();
-  await loop();
+  lacoAtivo = loop();
+  await lacoAtivo;
 }
 
 main().catch(async (e) => {

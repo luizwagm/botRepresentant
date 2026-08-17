@@ -198,6 +198,9 @@ model Conversation {
   humanOwnerId   String?            @map("human_owner_id")
   /// Quantos follow-ups ja sairam (0..4 — 24h, 48h, 72h, 5d).
   followUpStage  Int                @default(0) @map("follow_up_stage")
+  /// Falhas seguidas de envio. Depois de 3, a conversa vai pra FALHOU em vez
+  /// de ficar tentando de 2 em 2 horas pra sempre.
+  followUpFailures Int              @default(0) @map("follow_up_failures")
   /// Quando o motor deve agir de novo (proximo follow-up). Null = nada agendado.
   nextActionAt   DateTime?          @map("next_action_at")
   lastInboundAt  DateTime?          @map("last_inbound_at")
@@ -258,6 +261,9 @@ model OutreachTask {
   conversationId String?            @map("conversation_id")
   scheduledFor   DateTime           @map("scheduled_for")
   status         OutreachTaskStatus @default(PENDENTE)
+  /// Marcada quando o motor "pega" a tarefa. E o claim atomico que impede
+  /// dois ticks (ou duas instancias do worker) mandarem a mesma mensagem.
+  claimedAt      DateTime?          @map("claimed_at")
   attempts       Int                @default(0)
   lastError      String?            @db.Text @map("last_error")
   sentAt         DateTime?          @map("sent_at")

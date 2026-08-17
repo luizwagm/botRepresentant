@@ -9,6 +9,7 @@ set -euo pipefail
 
 APP_DIR="/var/www/atacado"
 PM2_APP="atacado"
+PM2_WORKER="outreach-worker"
 
 # Cores pro log
 GREEN='\033[0;32m'
@@ -66,6 +67,18 @@ STEP="Reiniciar aplicação (pm2 restart $PM2_APP)"
 log "$STEP"
 pm2 restart "$PM2_APP"
 ok "Aplicação reiniciada"
+
+# O worker da prospecção roda o motor de mensagens; sem reiniciar, ele seguiria
+# com o código antigo. Só reinicia se já estiver registrado no pm2 — quem ainda
+# não subiu o worker não vê o deploy falhar por causa disso.
+STEP="Reiniciar worker de prospecção (se existir)"
+log "$STEP"
+if pm2 describe "$PM2_WORKER" >/dev/null 2>&1; then
+  pm2 restart "$PM2_WORKER"
+  ok "Worker reiniciado"
+else
+  echo "  (worker '$PM2_WORKER' não registrado no pm2 — pulando)"
+fi
 
 # Backfills rodam DEPOIS do restart de propósito: eles gravam valores de enum
 # novos, e o processo antigo (com o PrismaClient já carregado em memória) não
