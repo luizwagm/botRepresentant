@@ -1,0 +1,242 @@
+# ==========================================================================
+#  Entrega automática — L. Augusto Atacado (jeans_hunter)
+#
+#  Dois trabalhos em sequência: PROVAR e ENTREGAR. O segundo só existe se o
+#  primeiro passar (`needs`).
+#
+#  O portão aqui foi desenhado a partir das falhas que DE FATO derrubaram este
+#  sistema em produção — as três passaram por `tsc` e `lint` sem reclamar:
+#
+#   1. Função exportada de um módulo "use client" chamada por um Server
+#      Component: 500 em /catalogo/publico/[id]. Só aparece ao RENDERIZAR a
+#      rota — por isso o smoke test abaixo abre a página de um produto real.
+#   2. Migration que o banco de produção não tinha: 500 em toda query.
+#      Por isso as migrations rodam contra um Postgres de verdade aqui.
+#   3. Deploy rodado como root: o `pm2 restart` não achou o processo, que vive
+#      no pm2 do usuário `deploy`. Por isso a entrega é feita por uma chave SSH
+#      presa a um `command=` que roda o deploy como o usuário certo.
+#
+#  A CHAVE DESTE WORKFLOW NÃO DÁ SHELL: no servidor ela está presa a um
+#  `command=` com `restrict`.
+# ==========================================================================
+name: Provar e entregar
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: entrega-atacado
+  cancel-in-progress: false
+
+jobs:
+  provar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Postgres de verdade: é o que torna possível provar as migrations.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: jeans_hunter
+          POSTGRES_PASSWORD: ci_pwd
+          POSTGRES_DB: jeans_hunter_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jeans_hunter"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://jeans_hunter:ci_pwd@localhost:5432/jeans_hunter_ci
+      # A migration de "shadow" que o prisma migrate diff usa pra comparar.
+      SHADOW_DATABASE_URL: postgresql://jeans_hunter:ci_pwd@localhost:5432/jeans_hunter_shadow
+      # Valores de fachada: env.ts exige que existam, mas nada aqui chama
+      # serviço externo. NÃO são segredos e não abrem nada.
+      ANTHROPIC_API_KEY: ci-dummy
+      GOOGLE_PLACES_API_KEY: ci-dummy
+      AUTH_SECRET: ci-dummy-secret-com-tamanho-suficiente-pra-hs256
+      ADMIN_EMAIL: ci@example.com
+      ADMIN_PASSWORD: ci-dummy-password
+      PUBLIC_BASE_URL: http://127.0.0.1:3030
+      LUIZ_WHATSAPP: "5581999999999"
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A mesma linha do servidor. Provar em outra versão é provar outro
+      # programa.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+
+      - name: Gerar o Prisma Client
+        run: npx prisma generate
+
+      # Nenhum script com fim de linha do Windows — o .gitattributes previne,
+      # isto confere. (Este repo é editado no Windows.)
+      - name: Nenhum script com fim de linha do Windows
+        run: |
+          if git ls-files '*.sh' | xargs -r grep -lP '\r$' 2>/dev/null | grep .; then
+            echo "Os arquivos acima têm CRLF — o bash não roda assim."
+            exit 1
+          fi
+          echo "todos com LF"
+
+      - name: Todo shell script compila
+        run: |
+          erros=0
+          while IFS= read -r f; do
+            bash -n "$f" || { echo "ERRO de sintaxe: $f"; erros=1; }
+          done < <(git ls-files '*.sh')
+          exit $erros
+
+      # PROVA 2: as migrations aplicam num banco limpo. Se faltar migration
+      # pra uma coluna nova, ou o SQL estiver errado, morre aqui — não em
+      # produção às 2 da manhã.
+      - name: As migrations aplicam num banco limpo
+        run: npx prisma migrate deploy
+
+      # E o schema.prisma não pode ter divergido das migrations (as migrations
+      # deste repo são escritas à mão). --exit-code faz sair 2 se houver
+      # diferença.
+      - name: Schema e migrations não divergem
+        run: |
+          psql "$DATABASE_URL" -c 'CREATE DATABASE jeans_hunter_shadow;' >/dev/null 2>&1 || true
+          npx prisma migrate diff \
+            --from-migrations ./prisma/migrations \
+            --to-schema-datamodel ./prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
+            --exit-code \
+          && echo "schema e migrations batem" \
+          || { echo "DIVERGÊNCIA: o schema.prisma mudou sem migration correspondente."; exit 1; }
+
+      - name: Tipos conferem
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build de produção
+        run: npm run build
+
+      # PROVA 1: o servidor sobe e as páginas REALMENTE renderizam. É o passo
+      # que teria pego o 500 da página de produto.
+      #
+      # Mata PELO PID guardado, nunca por pkill com o nome do comando.
+      - name: O servidor sobe e as páginas respondem
+        env:
+          PORT: "3030"
+        run: |
+          set -o pipefail
+          PRODUTO_ID=$(npx tsx scripts/ci-smoke-seed.ts | tail -n 1)
+          echo "produto de teste: $PRODUTO_ID"
+          if [ -z "$PRODUTO_ID" ]; then echo "seed não devolveu id"; exit 1; fi
+
+          npm start & PID=$!
+
+          # Espera o servidor atender.
+          pronto=0
+          for _ in $(seq 1 40); do
+            if curl -sf -o /dev/null "http://127.0.0.1:3030/login"; then pronto=1; break; fi
+            sleep 1
+          done
+          if [ "$pronto" != "1" ]; then
+            echo "o servidor não subiu"
+            kill "$PID" 2>/dev/null || true
+            exit 1
+          fi
+
+          falhou=0
+          checar() { # rota, código esperado
+            codigo=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3030$1")
+            if [ "$codigo" != "$2" ]; then
+              echo "FALHOU $1 — esperado $2, veio $codigo"
+              falhou=1
+            else
+              echo "ok $1 ($codigo)"
+            fi
+          }
+
+          checar "/login" 200
+          checar "/catalogo/publico" 200
+          checar "/catalogo/publico/$PRODUTO_ID" 200   # a rota do incidente
+          checar "/sobre" 200                          # sem linha no banco: prova o fallback
+          checar "/catalogo/publico/nao-existe-mesmo" 404
+          # Rota protegida sem sessão tem que mandar pro login, não abrir.
+          checar "/leads" 307
+
+          kill "$PID" 2>/dev/null || true
+          exit $falhou
+
+  entregar:
+    needs: provar
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # Enquanto o servidor não estiver preparado (scripts/preparar-entrega-no-
+      # servidor.sh), a entrega é PULADA em vez de falhar — o portão de provas
+      # já rodou, e um X vermelho aqui seria alarme falso.
+      - name: Os segredos de entrega existem?
+        id: segredos
+        env:
+          CHAVE: ${{ secrets.SSH_CHAVE_ENTREGA }}
+          DESTINO: ${{ secrets.SSH_DESTINO }}
+          HOST_CONHECIDO: ${{ secrets.SSH_HOST_CONHECIDO }}
+        run: |
+          if [ -z "$CHAVE" ] || [ -z "$DESTINO" ] || [ -z "$HOST_CONHECIDO" ]; then
+            echo "configurados=nao" >> "$GITHUB_OUTPUT"
+            echo "::warning::Entrega pulada: faltam os segredos SSH_CHAVE_ENTREGA / SSH_DESTINO / SSH_HOST_CONHECIDO. Rode scripts/preparar-entrega-no-servidor.sh no servidor."
+          else
+            echo "configurados=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Preparar a chave e o host conhecido
+        if: steps.segredos.outputs.configurados == 'sim'
+        env:
+          CHAVE: ${{ secrets.SSH_CHAVE_ENTREGA }}
+          HOST_CONHECIDO: ${{ secrets.SSH_HOST_CONHECIDO }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CHAVE" > ~/.ssh/id_entrega
+          chmod 600 ~/.ssh/id_entrega
+          # Host FIXADO, não aceito na hora: com StrictHostKeyChecking=no,
+          # qualquer servidor que responda no meio do caminho receberia a
+          # conexão — e a chave junto.
+          printf '%s\n' "$HOST_CONHECIDO" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Pedir a entrega
+        if: steps.segredos.outputs.configurados == 'sim'
+        env:
+          DESTINO: ${{ secrets.SSH_DESTINO }}
+        run: |
+          set -o pipefail
+          # Nenhum comando é enviado: o servidor ignora o que viesse aqui e roda
+          # o command= preso à chave.
+          ssh -T -i ~/.ssh/id_entrega \
+              -o BatchMode=yes -o ConnectTimeout=20 \
+              -o StrictHostKeyChecking=yes \
+              "$DESTINO" 2>&1 | tee saida-da-entrega.txt
+
+      - name: Guardar o log da entrega
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-da-entrega
+          path: saida-da-entrega.txt
+          retention-days: 30
+          if-no-files-found: ignore

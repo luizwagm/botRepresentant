@@ -22,6 +22,19 @@ ok()  { echo -e "${GREEN}✓ $1${NC}"; }
 # Se qualquer comando falhar, mostra a etapa e aborta
 trap 'echo -e "\n${RED}✗ DEPLOY FALHOU na etapa: ${STEP:-?}${NC}"; exit 1' ERR
 
+# O processo do pm2 pertence ao usuário DEPLOY_USER (o pm2 é por usuário:
+# cada um tem o seu ~/.pm2). Rodar isto como root sobe um daemon vazio em
+# /root/.pm2 e o `pm2 restart` falha com "Process or Namespace not found" —
+# depois de já ter migrado o banco e trocado o .next embaixo do app no ar.
+# Já aconteceu; por isso o deploy para aqui em vez de seguir.
+DEPLOY_USER="${DEPLOY_USER:-deploy}"
+ATUAL="$(id -un)"
+if [ "$ATUAL" != "$DEPLOY_USER" ]; then
+  echo -e "${RED}✗ Este deploy precisa rodar como '$DEPLOY_USER' (você está como '$ATUAL').${NC}"
+  echo -e "  Use:  su - $DEPLOY_USER -c 'cd $APP_DIR && ./deploy.sh'"
+  exit 1
+fi
+
 STEP="Acessar diretório do projeto"
 log "$STEP ($APP_DIR)"
 cd "$APP_DIR"
@@ -29,7 +42,9 @@ ok "Diretório atual: $(pwd)"
 
 STEP="Atualizar código (git pull)"
 log "$STEP"
-git pull
+# --ff-only: se alguém tiver commitado direto no servidor, o deploy para em vez
+# de abrir um merge (que travaria pedindo editor numa sessão SSH sem tty).
+git pull --ff-only
 ok "Código atualizado"
 
 STEP="Instalar dependências (npm ci)"

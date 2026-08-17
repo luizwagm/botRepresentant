@@ -1,0 +1,7 @@
+# Scripts de shell SEMPRE com LF. Um \r no fim da linha faz o Linux procurar o
+# interpretador "bash\r" e morrer com "arquivo não encontrado" — apontando pra um
+# arquivo que existe. O CI confere isto, mas prevenir aqui é melhor.
+*.sh text eol=lf
+
+# SQL de migration também roda no servidor.
+*.sql text eol=lf
