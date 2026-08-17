@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display, Jost } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
+import { getBrand } from "@/lib/brand";
 import { env } from "@/lib/env";
 import SiteHeader from "@/components/site-header";
 
@@ -55,13 +56,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const me = await getCurrentUser();
+  const brand = await getBrand();
   return (
     <html
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${jost.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
-        <SiteHeader me={me ? { email: me.email, role: me.role, name: me.name } : null} />
+        <SiteHeader
+          me={me ? { email: me.email, role: me.role, name: me.name } : null}
+          brand={brand}
+        />
         <main className="flex-1">{children}</main>
       </body>
     </html>

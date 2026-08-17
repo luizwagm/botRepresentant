@@ -13,6 +13,7 @@ import {
   type AboutContent,
 } from "@/lib/about";
 import BrandLogo from "@/components/brand-logo";
+import { getBrand } from "@/lib/brand";
 import RichContent from "@/components/rich-content";
 import { WhatsAppIcon } from "@/components/whatsapp-icon";
 
@@ -56,6 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SobrePage() {
   const a = await getAbout();
+  const brand = await getBrand();
   const wa = normalizeBrazilPhone(env.luizWhatsapp) ?? "";
   const waMsg = "Olá Luiz! Vi a página da L. Augusto Atacado e quero saber mais sobre o atacado.";
   const waHref = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(waMsg)}` : null;
@@ -66,7 +68,7 @@ export default async function SobrePage() {
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-6">
           <Link href="/catalogo/publico" aria-label="L. Augusto Atacado — catálogo">
-            <BrandLogo variant="full" size="sm" />
+            <BrandLogo variant="full" size="sm" logoUrl={brand.logoUrl} markUrl={brand.markUrl} />
           </Link>
           <nav className="flex items-center gap-2 text-sm">
             <Link href="/catalogo/publico" className="rounded-md px-3 py-2 font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900">
@@ -136,7 +138,13 @@ export default async function SobrePage() {
               />
             ) : (
               <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10">
-                <BrandLogo variant="mark" size="xl" className="opacity-90" />
+                <BrandLogo
+                  variant="mark"
+                  size="xl"
+                  className="opacity-90"
+                  logoUrl={brand.logoUrl}
+                  markUrl={brand.markUrl}
+                />
               </div>
             )}
           </div>

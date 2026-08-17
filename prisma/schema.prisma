@@ -299,6 +299,46 @@ model AiSettings {
   @@map("ai_settings")
 }
 
+enum ChannelState {
+  DESCONECTADO
+  AGUARDANDO_QR
+  CONECTADO
+}
+
+/// Estado do canal de WhatsApp (worker) publicado pro painel. Singleton "wa".
+/// O worker escreve; o painel le. E o unico canal entre os dois processos.
+model ChannelStatus {
+  id              String       @id @default("wa")
+  state           ChannelState @default(DESCONECTADO)
+  /// Payload cru do QR atual. Expira em segundos — o worker regrava a cada novo.
+  qr              String?      @db.Text
+  qrUpdatedAt     DateTime?    @map("qr_updated_at")
+  connectedPhone  String?      @map("connected_phone")
+  connectedAt     DateTime?    @map("connected_at")
+  lastError       String?      @db.Text @map("last_error")
+  /// Ultimo sinal de vida do worker — sem isso, "conectado" poderia ser um
+  /// estado velho de um processo que morreu.
+  heartbeatAt     DateTime?    @map("heartbeat_at")
+  /// O painel pede a desconexao aqui; o worker obedece e limpa a sessao.
+  logoutRequested Boolean      @default(false) @map("logout_requested")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@map("channel_status")
+}
+
+/// Identidade visual editavel pelo painel (singleton "brand"). Sem logo
+/// enviada, o sistema usa o monograma SVG embutido.
+model BrandSettings {
+  id         String   @id @default("brand")
+  /// Logo horizontal (cabecalho do site e do painel).
+  logoUrl    String?  @map("logo_url")
+  /// Simbolo quadrado (icone/avatar). Cai pra logoUrl quando ausente.
+  markUrl    String?  @map("mark_url")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("brand_settings")
+}
+
 enum Role {
   ADMIN
   VENDEDOR

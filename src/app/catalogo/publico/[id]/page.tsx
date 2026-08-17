@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { normalizeBrazilPhone } from "@/lib/phone";
 import { readColors } from "@/lib/product-colors";
 import BrandLogo from "@/components/brand-logo";
+import { getBrand } from "@/lib/brand";
 import ProductView, { type PublicProduct, WhatsAppIcon } from "@/components/product-view";
 import { orderMessageFor } from "@/lib/order-message";
 
@@ -67,6 +68,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ id: st
   };
   const luizWhatsapp = normalizeBrazilPhone(env.luizWhatsapp) ?? "";
   const orderMessage = orderMessageFor(product.name);
+  const brand = await getBrand();
 
   return (
     <div className="min-h-screen bg-white">
@@ -74,7 +76,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ id: st
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4 sm:px-6">
           <Link href="/catalogo/publico" aria-label="L. Augusto Atacado — catálogo">
-            <BrandLogo variant="full" size="sm" />
+            <BrandLogo variant="full" size="sm" logoUrl={brand.logoUrl} markUrl={brand.markUrl} />
           </Link>
           {luizWhatsapp && (
             <a

@@ -7,10 +7,43 @@ import {
   CONVERSATION_STATUS_LABEL,
   type ConversationStatusValue,
 } from "@/lib/outreach/labels";
-import { BR_STATES } from "@/lib/labels";
+import {
+  BR_STATES,
+  FUNNEL_STAGES,
+  FUNNEL_STAGE_LABEL,
+  STORE_TYPES,
+  STORE_TYPE_LABEL,
+} from "@/lib/labels";
 import { BR_CITIES } from "@/lib/br-cities";
 
-type Aba = "conversas" | "agendar" | "config";
+type Aba = "conversas" | "agendar" | "conexao" | "config";
+
+type ChannelState = "DESCONECTADO" | "AGUARDANDO_QR" | "CONECTADO";
+
+type ChannelInfo = {
+  state: ChannelState;
+  workerOnline: boolean;
+  connectedPhone: string | null;
+  connectedAt: string | null;
+  lastError: string | null;
+  heartbeatAt: string | null;
+  qrSvg: string | null;
+};
+
+type Elegivel = {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  whatsapp: string | null;
+  storeType: string;
+  businessKind: string;
+  funnelStage: string;
+  rating: number | null;
+  conversaStatus: string | null;
+  agendadoPara: string | null;
+  bloqueio: string | null;
+};
 
 type Conversation = {
   id: string;
@@ -47,8 +80,6 @@ type Settings = {
   sendOnWeekends: boolean;
 };
 
-type Lead = { id: string; name: string; city: string; state: string; whatsapp: string | null };
-
 type Batch = {
   id: string;
   scheduledFor: string;
@@ -66,6 +97,7 @@ function fmt(d: string | null): string {
 export default function ProspeccaoAdmin() {
   const [aba, setAba] = useState<Aba>("conversas");
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [canal, setCanal] = useState<ChannelInfo | null>(null);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -76,11 +108,22 @@ export default function ProspeccaoAdmin() {
     }
   }, []);
 
+  // Estado do canal em background: alimenta o aviso do topo e a aba Conexão.
+  const loadCanal = useCallback(async () => {
+    try {
+      const res = await fetch("/api/outreach/channel");
+      if (res.ok) setCanal((await res.json()) as ChannelInfo);
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       await loadSettings();
+      await loadCanal();
     })();
-  }, [loadSettings]);
+  }, [loadSettings, loadCanal]);
 
   async function toggleAutomacao(enabled: boolean) {
     const res = await fetch("/api/outreach/settings", {
@@ -120,12 +163,31 @@ export default function ProspeccaoAdmin() {
         </button>
       </div>
 
+      {/* Aviso de canal: automação ligada sem WhatsApp conectado não envia nada */}
+      {canal && canal.state !== "CONECTADO" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="text-sm text-amber-900">
+            <strong>WhatsApp não conectado.</strong>{" "}
+            {canal.workerOnline
+              ? "Leia o QR code para conectar — nada é enviado sem isso."
+              : "O worker de prospecção parece estar fora do ar."}
+          </div>
+          <button
+            onClick={() => setAba("conexao")}
+            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            Abrir conexão
+          </button>
+        </div>
+      )}
+
       {/* Abas */}
       <div className="flex gap-1 border-b border-zinc-200">
         {(
           [
             ["conversas", "Conversas"],
             ["agendar", "Agendar contatos"],
+            ["conexao", "Conexão"],
             ["config", "Vendedor de IA"],
           ] as const
         ).map(([k, label]) => (
@@ -145,6 +207,7 @@ export default function ProspeccaoAdmin() {
 
       {aba === "conversas" && <Conversas />}
       {aba === "agendar" && <Agendar />}
+      {aba === "conexao" && <Conexao info={canal} onRefresh={loadCanal} />}
       {aba === "config" && settings && <Config settings={settings} onSaved={setSettings} />}
     </div>
   );
@@ -378,12 +441,146 @@ function ConversaModal({
 }
 
 // ==========================================================================
+//  Conexão do WhatsApp (QR no painel)
+// ==========================================================================
+function Conexao({ info, onRefresh }: { info: ChannelInfo | null; onRefresh: () => Promise<void> }) {
+  const [desconectando, setDesconectando] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  // O QR do WhatsApp expira em ~20s e o worker gera outro. Sem repetir a
+  // busca, a tela mostraria um código morto que nunca conecta.
+  useEffect(() => {
+    const t = setInterval(() => void onRefresh(), 4_000);
+    return () => clearInterval(t);
+  }, [onRefresh]);
+
+  async function desconectar() {
+    if (!confirm("Desconectar este número? Você precisará ler um QR code novo para reconectar.")) {
+      return;
+    }
+    setDesconectando(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/outreach/channel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "desconectar" }),
+      });
+      const j = await res.json();
+      setMsg(res.ok ? (j.aviso ?? "Pedido enviado.") : (j.error ?? "Falha."));
+    } catch {
+      setMsg("Falha ao pedir desconexão.");
+    } finally {
+      setDesconectando(false);
+    }
+  }
+
+  if (!info) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center text-sm text-zinc-500">
+        Carregando estado da conexão...
+      </div>
+    );
+  }
+
+  const conectado = info.state === "CONECTADO";
+
+  return (
+    <div className="space-y-4">
+      <div
+        className={`rounded-xl border p-5 shadow-sm ${
+          conectado ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-white"
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-block h-2.5 w-2.5 rounded-full ${
+                  conectado ? "bg-emerald-500" : info.workerOnline ? "bg-amber-500" : "bg-zinc-400"
+                }`}
+                aria-hidden
+              />
+              <span className="text-sm font-semibold text-zinc-900">
+                {conectado
+                  ? "WhatsApp conectado"
+                  : info.state === "AGUARDANDO_QR"
+                    ? "Aguardando leitura do QR"
+                    : "Desconectado"}
+              </span>
+            </div>
+            <div className="mt-1 space-y-0.5 text-xs text-zinc-600">
+              {conectado && info.connectedPhone && <div>Número: {info.connectedPhone}</div>}
+              {conectado && info.connectedAt && <div>Conectado desde {fmt(info.connectedAt)}</div>}
+              <div className={info.workerOnline ? "text-zinc-500" : "font-medium text-red-700"}>
+                Worker: {info.workerOnline ? "no ar" : "FORA DO AR"}
+                {info.heartbeatAt && ` · último sinal ${fmt(info.heartbeatAt)}`}
+              </div>
+              {info.lastError && <div className="text-amber-700">{info.lastError}</div>}
+            </div>
+          </div>
+          {conectado && (
+            <button
+              onClick={() => void desconectar()}
+              disabled={desconectando}
+              className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              {desconectando ? "Pedindo..." : "Desconectar / trocar número"}
+            </button>
+          )}
+        </div>
+        {msg && <div className="mt-3 rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700">{msg}</div>}
+      </div>
+
+      {!info.workerOnline && !conectado && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+          <strong>O worker não está rodando.</strong> Sem ele o sistema não envia nem recebe nada.
+          No servidor, rode:
+          <code className="mt-2 block rounded bg-white/70 px-3 py-2 font-mono text-xs">
+            pm2 start ecosystem.config.cjs &amp;&amp; pm2 save
+          </code>
+        </div>
+      )}
+
+      {info.qrSvg && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center shadow-sm">
+          <h3 className="text-base font-semibold text-zinc-900">Conecte o número secundário</h3>
+          <ol className="mx-auto mt-2 max-w-md list-decimal space-y-0.5 text-left text-sm text-zinc-600">
+            <li>Abra o WhatsApp no celular do número que fará a prospecção.</li>
+            <li>
+              Toque em <strong>Aparelhos conectados</strong> → <strong>Conectar aparelho</strong>.
+            </li>
+            <li>Aponte a câmera para o código abaixo.</li>
+          </ol>
+          <div
+            className="mx-auto mt-4 w-fit rounded-lg bg-white p-2 ring-1 ring-zinc-200 [&>svg]:h-64 [&>svg]:w-64"
+            // O SVG vem do gerador de QR do próprio servidor (não é conteúdo de usuário).
+            dangerouslySetInnerHTML={{ __html: info.qrSvg }}
+          />
+          <p className="mt-3 text-xs text-zinc-500">
+            O código muda a cada poucos segundos — a tela atualiza sozinha.
+          </p>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-xs text-amber-900">
+        <strong>Use um número secundário.</strong> Este canal não é oficial: existe risco real de
+        banimento, sobretudo em disparo frio. Comece com poucos envios por dia e vá subindo devagar.
+      </div>
+    </div>
+  );
+}
+
+// ==========================================================================
 //  Agendar
 // ==========================================================================
 function Agendar() {
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [q, setQ] = useState("");
+  const [etapa, setEtapa] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [leads, setLeads] = useState<Elegivel[]>([]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [quando, setQuando] = useState("");
   const [nota, setNota] = useState("");
@@ -405,30 +602,41 @@ function Agendar() {
     }
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      await loadBatches();
-    })();
-  }, [loadBatches]);
-
-  async function buscarLeads() {
+  // Busca nas lojas JÁ CAPTADAS. Sem filtro fixo de etapa: antes só apareciam
+  // leads em "Novo lead", então a maior parte do que o usuário já tinha
+  // buscado ficava invisível aqui.
+  const buscarLeads = useCallback(async () => {
     setBuscando(true);
     setErro(null);
     try {
-      const p = new URLSearchParams({ has_whatsapp: "1", funnel_stage: "NOVO_LEAD", limit: "100" });
+      const p = new URLSearchParams({ limit: "300" });
       if (state) p.set("state", state);
       if (city) p.set("city", city);
-      const res = await fetch(`/api/leads?${p.toString()}`);
+      if (q.trim()) p.set("q", q.trim());
+      if (etapa) p.set("funnel_stage", etapa);
+      if (tipo) p.set("store_type", tipo);
+      const res = await fetch(`/api/outreach/elegiveis?${p.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "Falha na busca.");
-      setLeads(json.items);
+      setLeads(json.items as Elegivel[]);
       setSel(new Set());
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha na busca.");
     } finally {
       setBuscando(false);
     }
-  }
+  }, [state, city, q, etapa, tipo]);
+
+  // Carrega já na abertura: a tela abre mostrando as lojas que você tem.
+  useEffect(() => {
+    void (async () => {
+      await loadBatches();
+      await buscarLeads();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const disponiveis = useMemo(() => leads.filter((l) => !l.bloqueio), [leads]);
 
   async function agendar() {
     if (sel.size === 0) {
@@ -467,8 +675,22 @@ function Agendar() {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-base font-semibold">1. Escolha as lojas</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <h2 className="text-base font-semibold">1. Escolha as lojas</h2>
+        <p className="mt-0.5 mb-3 text-xs text-zinc-500">
+          Estas são as lojas que você já captou em <strong>Leads</strong>. Só aparecem as que têm
+          WhatsApp e não pediram opt-out.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void buscarLeads();
+            }}
+            placeholder="Nome da loja..."
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm lg:col-span-2"
+          />
           <select
             value={state}
             onChange={(e) => {
@@ -493,36 +715,77 @@ function Agendar() {
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
           </select>
+          <select
+            value={etapa}
+            onChange={(e) => setEtapa(e.target.value)}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">Etapa (todas)</option>
+            {FUNNEL_STAGES.map((s) => (
+              <option key={s} value={s}>{FUNNEL_STAGE_LABEL[s]}</option>
+            ))}
+          </select>
+          <select
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">Tipo (todos)</option>
+            {STORE_TYPES.map((t) => (
+              <option key={t} value={t}>{STORE_TYPE_LABEL[t]}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <button
             onClick={() => void buscarLeads()}
             disabled={buscando}
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            {buscando ? "Buscando..." : "Buscar lojas novas"}
+            {buscando ? "Buscando..." : "Buscar nas minhas lojas"}
           </button>
-          <div className="flex items-center text-xs text-zinc-500">
-            {leads.length > 0 && `${sel.size} de ${leads.length} selecionadas`}
-          </div>
-        </div>
-
-        {leads.length > 0 && (
-          <>
-            <div className="mt-3 flex gap-2">
+          {leads.length > 0 && (
+            <>
               <button
-                onClick={() => setSel(new Set(leads.map((l) => l.id)))}
+                onClick={() => setSel(new Set(disponiveis.map((l) => l.id)))}
                 className="text-xs font-medium text-indigo-600 hover:underline"
               >
-                Selecionar todas
+                Selecionar as {disponiveis.length} disponíveis
               </button>
               <button onClick={() => setSel(new Set())} className="text-xs font-medium text-zinc-500 hover:underline">
                 Limpar
               </button>
-            </div>
-            <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-zinc-200">
-              {leads.map((l) => (
-                <label key={l.id} className="flex cursor-pointer items-center gap-2 border-b border-zinc-100 px-3 py-2 text-sm last:border-0 hover:bg-zinc-50">
+            </>
+          )}
+          <span className="text-xs text-zinc-500">
+            {buscando
+              ? ""
+              : `${leads.length} loja(s) · ${disponiveis.length} disponível(is) · ${sel.size} selecionada(s)`}
+          </span>
+        </div>
+
+        {!buscando && leads.length === 0 && (
+          <div className="mt-3 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
+            Nenhuma loja encontrada com esses filtros. Capte lojas em{" "}
+            <strong>Leads → Buscar lojas</strong>.
+          </div>
+        )}
+
+        {leads.length > 0 && (
+          <div className="mt-3 max-h-80 overflow-y-auto rounded-md border border-zinc-200">
+            {leads.map((l) => {
+              const travado = l.bloqueio !== null;
+              return (
+                <label
+                  key={l.id}
+                  className={`flex items-center gap-2 border-b border-zinc-100 px-3 py-2 text-sm last:border-0 ${
+                    travado ? "cursor-not-allowed bg-zinc-50/70" : "cursor-pointer hover:bg-zinc-50"
+                  }`}
+                >
                   <input
                     type="checkbox"
+                    disabled={travado}
                     checked={sel.has(l.id)}
                     onChange={(e) => {
                       const next = new Set(sel);
@@ -530,14 +793,31 @@ function Agendar() {
                       else next.delete(l.id);
                       setSel(next);
                     }}
-                    className="h-4 w-4 rounded border-zinc-300 text-indigo-600"
+                    className="h-4 w-4 rounded border-zinc-300 text-indigo-600 disabled:opacity-40"
                   />
-                  <span className="font-medium text-zinc-800">{l.name}</span>
-                  <span className="text-xs text-zinc-500">{l.city}/{l.state}</span>
+                  <span className={`font-medium ${travado ? "text-zinc-400" : "text-zinc-800"}`}>
+                    {l.name}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    {l.city}/{l.state}
+                  </span>
+                  <span className="ml-auto flex items-center gap-2">
+                    {l.bloqueio && (
+                      <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                        {l.bloqueio}
+                        {l.agendadoPara ? ` · ${fmt(l.agendadoPara)}` : ""}
+                      </span>
+                    )}
+                    {!l.bloqueio && (
+                      <span className="text-[10px] text-zinc-400">
+                        {FUNNEL_STAGE_LABEL[l.funnelStage as keyof typeof FUNNEL_STAGE_LABEL] ?? l.funnelStage}
+                      </span>
+                    )}
+                  </span>
                 </label>
-              ))}
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
 

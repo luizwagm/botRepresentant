@@ -58,19 +58,56 @@ export function BrandMarkMono({ className }: { className?: string }) {
   );
 }
 
+/** Altura da logo enviada, por tamanho (a largura acompanha a proporção). */
+const IMG_HEIGHT: Record<Size, string> = {
+  sm: "h-8",
+  md: "h-11",
+  lg: "h-16",
+  xl: "h-24",
+};
+
 export default function BrandLogo({
   variant = "full",
   size = "md",
   withTagline = false,
   className = "",
+  logoUrl = null,
+  markUrl = null,
 }: {
   variant?: "full" | "mark";
   size?: Size;
   withTagline?: boolean;
   className?: string;
+  /** Logo horizontal enviada no painel. Sem ela, usa o monograma SVG. */
+  logoUrl?: string | null;
+  /** Símbolo quadrado enviado no painel. */
+  markUrl?: string | null;
 }) {
   if (variant === "mark") {
+    const src = markUrl ?? logoUrl;
+    if (src) {
+      return (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={src}
+          alt="L. Augusto Atacado"
+          className={`${MARK_SIZE[size]} object-contain ${className}`}
+        />
+      );
+    }
     return <BrandMark className={`${MARK_SIZE[size]} ${className}`} />;
+  }
+
+  // Logo enviada substitui o conjunto símbolo + tipografia.
+  if (logoUrl) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={logoUrl}
+        alt="L. Augusto Atacado"
+        className={`${IMG_HEIGHT[size]} w-auto object-contain ${className}`}
+      />
+    );
   }
   return (
     <div className={`flex items-center gap-3 ${className}`}>

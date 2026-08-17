@@ -18,7 +18,7 @@
 //  LAÇO DE ENVIO roda uma vez só. Reconectar não pode multiplicar laços — dois
 //  laços concorrentes furariam o intervalo entre mensagens e virariam rajada.
 // ==========================================================================
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
@@ -28,6 +28,13 @@ import qrcode from "qrcode-terminal";
 import { prisma } from "../src/lib/db";
 import type { Channel } from "../src/lib/outreach/channel";
 import { handleHumanEcho, handleInbound, tick } from "../src/lib/outreach/engine";
+import {
+  consumeLogoutRequest,
+  heartbeat,
+  publishConnected,
+  publishDisconnected,
+  publishQr,
+} from "../src/lib/outreach/channel-status";
 import { getAiSettings, nextGapMs } from "../src/lib/outreach/settings";
 
 const SESSION_DIR = process.env.OUTREACH_SESSION_DIR ?? ".wa-session";
@@ -145,13 +152,20 @@ async function connect(): Promise<void> {
 
     if (qr) {
       console.log("\n=== Leia este QR code no WhatsApp do número secundário ===");
-      console.log("   (WhatsApp > Aparelhos conectados > Conectar aparelho)\n");
+      console.log("   (WhatsApp > Aparelhos conectados > Conectar aparelho)");
+      console.log("   Ou leia pelo painel, em Prospecção > Conexão.\n");
       qrcode.generate(qr, { small: true });
+      // Publica pro painel: é assim que o QR aparece na tela sem precisar de
+      // acesso ao terminal do servidor.
+      void publishQr(qr);
     }
 
     if (connection === "open") {
       ready = true;
-      console.log(`✓ WhatsApp conectado como ${s.user?.id ?? "?"}`);
+      const eu = s.user?.id ?? null;
+      console.log(`✓ WhatsApp conectado como ${eu ?? "?"}`);
+      // "5581...:12@s.whatsapp.net" -> "5581..."
+      void publishConnected(eu ? (eu.split(/[:@]/)[0] ?? null) : null);
     }
 
     if (connection === "close") {
@@ -159,15 +173,23 @@ async function connect(): Promise<void> {
       const status = (lastDisconnect?.error as { output?: { statusCode?: number } })?.output
         ?.statusCode;
       console.warn(`✗ WhatsApp desconectado (status ${status ?? "?"})`);
+      void publishDisconnected(`desconectado (status ${status ?? "?"})`);
 
       if (status === DisconnectReason.loggedOut) {
         console.error(
-          `A sessão foi encerrada no aparelho. Apague ${SESSION_DIR} e rode de novo pra ler o QR.`,
+          `Sessão encerrada. Apagando ${SESSION_DIR} — ao reiniciar, um QR novo é gerado.`,
         );
-        // Sai com erro em vez de ficar de pé sem canal: assim o pm2 registra a
-        // queda e o painel mostra "canal offline" em vez de silêncio.
+        // Limpa a sessão morta: sem isso o worker reiniciaria em laço tentando
+        // usar credenciais inválidas e nunca mostraria QR novo.
+        try {
+          rmSync(SESSION_DIR, { recursive: true, force: true });
+        } catch {
+          /* segue mesmo assim */
+        }
         parando = true;
-        void prisma.$disconnect().finally(() => process.exit(1));
+        void publishDisconnected("sessão encerrada no aparelho — leia o QR de novo").finally(() => {
+          void prisma.$disconnect().finally(() => process.exit(1));
+        });
         return;
       }
       if (!parando) {
@@ -282,6 +304,32 @@ function despachar(jid: string): void {
 async function loop(): Promise<void> {
   while (!parando) {
     try {
+      // Sinal de vida pro painel: sem isto, "conectado" poderia ser o estado
+      // congelado de um processo que já morreu.
+      await heartbeat();
+
+      // O painel pediu pra desconectar (trocar de número): desloga, apaga a
+      // sessão e reconecta — o QR novo aparece na tela.
+      if (await consumeLogoutRequest()) {
+        console.log("[canal] desconexão pedida pelo painel.");
+        ready = false;
+        try {
+          await sock?.logout();
+        } catch {
+          /* já pode estar fora */
+        }
+        try {
+          rmSync(SESSION_DIR, { recursive: true, force: true });
+        } catch {
+          /* segue */
+        }
+        sock = null;
+        await publishDisconnected("desconectado pelo painel — leia o QR pra reconectar");
+        void connect().catch((e) => console.error("[wa] falha ao reconectar:", e));
+        await sleep(5_000);
+        continue;
+      }
+
       const r = await tick(channel);
       const fez = r.primeiroContato + r.followUps + r.encerrados;
       if (fez > 0) {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { normalizeBrazilPhone } from "@/lib/phone";
 import { readColors } from "@/lib/product-colors";
+import { getBrand } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -10,6 +11,7 @@ export const metadata = {
 };
 
 export default async function GaleriaPublica() {
+  const brand = await getBrand();
   const products = await prisma.product.findMany({
     where: { active: true },
     orderBy: { createdAt: "desc" },
@@ -36,6 +38,7 @@ export default async function GaleriaPublica() {
         }))}
         brandName={env.brandName}
         luizWhatsapp={normalizeBrazilPhone(env.luizWhatsapp) ?? ""}
+        brand={brand}
       />
     </div>
   );

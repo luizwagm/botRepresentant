@@ -1,4 +1,5 @@
 import BrandLogo, { BrandMark, BrandMarkMono } from "@/components/brand-logo";
+import LogoAdmin from "./logo-admin";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Marca — L. Augusto Atacado" };
@@ -18,6 +19,8 @@ export default function MarcaPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Identidade da marca</h1>
         <p className="mt-1 text-sm text-zinc-500">L. Augusto Atacado — sistema visual.</p>
       </div>
+
+      <LogoAdmin />
 
       {/* Lockup principal */}
       <section className="mb-8 overflow-hidden rounded-2xl border border-zinc-200">
