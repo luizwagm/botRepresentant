@@ -58,13 +58,23 @@ export function BrandMarkMono({ className }: { className?: string }) {
   );
 }
 
-/** Altura da logo enviada, por tamanho (a largura acompanha a proporção). */
+/**
+ * Altura da logo, por tamanho. Um pouco maior que o monograma SVG porque a
+ * logo oficial é um lockup completo (símbolo + nome + assinatura) — em tamanho
+ * pequeno demais o texto dentro dela não se lê.
+ */
 const IMG_HEIGHT: Record<Size, string> = {
-  sm: "h-8",
-  md: "h-11",
-  lg: "h-16",
-  xl: "h-24",
+  sm: "h-11",
+  md: "h-16",
+  lg: "h-24",
+  xl: "h-36",
 };
+
+/**
+ * A logo tem fundo escuro próprio. Sobre cabeçalho branco ela fica melhor como
+ * um selo com cantos arredondados do que como imagem "solta".
+ */
+const IMG_BASE = "w-auto rounded-lg object-contain";
 
 export default function BrandLogo({
   variant = "full",
@@ -91,7 +101,7 @@ export default function BrandLogo({
         <img
           src={src}
           alt="L. Augusto Atacado"
-          className={`${MARK_SIZE[size]} object-contain ${className}`}
+          className={`${MARK_SIZE[size]} rounded-lg object-contain ${className}`}
         />
       );
     }
@@ -105,7 +115,7 @@ export default function BrandLogo({
       <img
         src={logoUrl}
         alt="L. Augusto Atacado"
-        className={`${IMG_HEIGHT[size]} w-auto object-contain ${className}`}
+        className={`${IMG_HEIGHT[size]} ${IMG_BASE} ${className}`}
       />
     );
   }

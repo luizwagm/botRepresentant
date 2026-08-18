@@ -42,9 +42,9 @@ export default function Gallery({
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
+            {/* A logo já traz nome e assinatura — texto ao lado seria repetição. */}
             <h1 className="sr-only">{brandName}</h1>
             <BrandLogo variant="full" size="md" logoUrl={brand?.logoUrl} markUrl={brand?.markUrl} />
-            <p className="mt-2 text-xs text-zinc-500">Catálogo atacado — fabricante do Agreste Pernambucano</p>
           </div>
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <Link

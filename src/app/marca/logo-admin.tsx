@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import BrandLogo from "@/components/brand-logo";
+import { DEFAULT_LOGO } from "@/lib/brand-defaults";
 
 type Brand = { logoUrl: string | null; markUrl: string | null };
 
 export default function LogoAdmin() {
-  const [brand, setBrand] = useState<Brand>({ logoUrl: null, markUrl: null });
+  const [brand, setBrand] = useState<Brand>({ logoUrl: DEFAULT_LOGO, markUrl: DEFAULT_LOGO });
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [enviando, setEnviando] = useState<"logoUrl" | "markUrl" | null>(null);
@@ -79,26 +80,25 @@ export default function LogoAdmin() {
     );
   }
 
-  const usandoPadrao = !brand.logoUrl && !brand.markUrl;
+  const usandoPadrao = brand.logoUrl === DEFAULT_LOGO;
 
   return (
     <section className="mb-8 rounded-2xl border border-indigo-200 bg-indigo-50/30 p-6">
       <h2 className="text-base font-semibold text-zinc-900">Trocar a logomarca</h2>
       <p className="mt-1 text-sm text-zinc-600">
-        A logo enviada aqui substitui o monograma padrão em <strong>todo o sistema</strong>: painel,
-        catálogo público, página do produto e &ldquo;Sobre nós&rdquo;. Sem envio, o sistema usa o
-        monograma desenhado abaixo.
+        A logo definida aqui vale para <strong>todo o sistema</strong>: painel, catálogo público,
+        página do produto e &ldquo;Sobre nós&rdquo;. Envie uma imagem para substituir a logo padrão.
       </p>
       {usandoPadrao && (
         <p className="mt-2 inline-block rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-600 ring-1 ring-zinc-200">
-          Usando o monograma padrão
+          Usando a logo padrão do sistema
         </p>
       )}
 
       <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Slot
-          titulo="Logo horizontal"
-          ajuda="Cabeçalhos. PNG ou SVG com fundo transparente, ~600×160."
+          titulo="Logo principal"
+          ajuda="Usada nos cabeçalhos do painel e do site."
           url={brand.logoUrl}
           enviando={enviando === "logoUrl"}
           onEnviar={(f) => void enviar("logoUrl", f)}
@@ -107,7 +107,7 @@ export default function LogoAdmin() {
         />
         <Slot
           titulo="Símbolo quadrado"
-          ajuda="Ícone/avatar. Quadrado, ~512×512. Opcional."
+          ajuda="Ícone/avatar quadrado. Opcional — sem ela, usa a de cima."
           url={brand.markUrl}
           enviando={enviando === "markUrl"}
           onEnviar={(f) => void enviar("markUrl", f)}

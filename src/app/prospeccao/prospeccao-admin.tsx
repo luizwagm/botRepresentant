@@ -30,6 +30,22 @@ type ChannelInfo = {
   qrSvg: string | null;
 };
 
+type Diagnostico = {
+  impedimentos: string[];
+  pronto: boolean;
+  automacaoLigada: boolean;
+  workerOnline: boolean;
+  whatsappConectado: boolean;
+  dentroDaJanela: boolean;
+  janela: { inicio: number; fim: number; fimDeSemana: boolean; fuso: string };
+  enviadosHoje: number;
+  tetoDiario: number;
+  naFila: number;
+  atrasadas: number;
+  proximaTarefa: string | null;
+  followUpsVencidos: number;
+};
+
 type Elegivel = {
   id: string;
   name: string;
@@ -572,6 +588,95 @@ function Conexao({ info, onRefresh }: { info: ChannelInfo | null; onRefresh: () 
 }
 
 // ==========================================================================
+//  Diagnóstico: por que a fila não anda
+// ==========================================================================
+const MOTIVO_LABEL: Record<string, string> = {
+  automacao_desligada: "A automação está DESLIGADA (chave geral no topo desta página).",
+  worker_offline: "O worker de prospecção está fora do ar no servidor.",
+  whatsapp_desconectado: "O WhatsApp não está conectado — leia o QR na aba Conexão.",
+  fora_da_janela: "Fora do horário de envio configurado.",
+  teto_diario: "O teto diário de mensagens já foi atingido.",
+};
+
+function DiagnosticoFila() {
+  const [d, setD] = useState<Diagnostico | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/outreach/diagnostico");
+      if (res.ok) setD((await res.json()) as Diagnostico);
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      await load();
+    })();
+    const t = setInterval(() => void load(), 15_000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  if (!d) return null;
+
+  const parado = d.atrasadas > 0 || d.followUpsVencidos > 0;
+
+  return (
+    <div
+      className={`rounded-xl border p-4 shadow-sm ${
+        d.pronto
+          ? "border-emerald-200 bg-emerald-50"
+          : parado
+            ? "border-red-200 bg-red-50"
+            : "border-zinc-200 bg-white"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-zinc-900">
+            {d.pronto
+              ? "Motor pronto para enviar"
+              : parado
+                ? "A fila está parada"
+                : "Motor com envio suspenso"}
+          </div>
+          <div className="mt-1 text-xs text-zinc-600">
+            {d.naFila} na fila
+            {d.atrasadas > 0 && (
+              <span className="font-semibold text-red-700"> · {d.atrasadas} com horário vencido</span>
+            )}
+            {d.followUpsVencidos > 0 && ` · ${d.followUpsVencidos} follow-up(s) vencido(s)`}
+            {d.proximaTarefa && ` · próxima: ${fmt(d.proximaTarefa)}`}
+          </div>
+          <div className="mt-0.5 text-xs text-zinc-500">
+            Enviadas hoje: {d.enviadosHoje}/{d.tetoDiario} · Janela {d.janela.inicio}h–{d.janela.fim}h
+            {d.janela.fimDeSemana ? " (inclui fim de semana)" : " (dias úteis)"}
+          </div>
+        </div>
+        <button
+          onClick={() => void load()}
+          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-50"
+        >
+          Atualizar
+        </button>
+      </div>
+
+      {d.impedimentos.length > 0 && (
+        <ul className="mt-3 space-y-1 border-t border-zinc-200/70 pt-3">
+          {d.impedimentos.map((m) => (
+            <li key={m} className="flex items-start gap-2 text-sm text-zinc-800">
+              <span aria-hidden>&#9888;</span>
+              <span>{MOTIVO_LABEL[m] ?? m}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ==========================================================================
 //  Agendar
 // ==========================================================================
 function Agendar() {
@@ -674,6 +779,8 @@ function Agendar() {
 
   return (
     <div className="space-y-6">
+      <DiagnosticoFila />
+
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-base font-semibold">1. Escolha as lojas</h2>
         <p className="mt-0.5 mb-3 text-xs text-zinc-500">
