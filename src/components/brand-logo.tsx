@@ -59,15 +59,14 @@ export function BrandMarkMono({ className }: { className?: string }) {
 }
 
 /**
- * Altura da logo, por tamanho. Um pouco maior que o monograma SVG porque a
- * logo oficial é um lockup completo (símbolo + nome + assinatura) — em tamanho
- * pequeno demais o texto dentro dela não se lê.
+ * Altura da logo, por tamanho. A logo oficial é um lockup horizontal (~4:1),
+ * então a altura é o que manda; a largura acompanha.
  */
 const IMG_HEIGHT: Record<Size, string> = {
-  sm: "h-11",
-  md: "h-16",
-  lg: "h-24",
-  xl: "h-36",
+  sm: "h-10",
+  md: "h-14",
+  lg: "h-20",
+  xl: "h-28",
 };
 
 /**

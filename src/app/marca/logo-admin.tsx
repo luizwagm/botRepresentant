@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import BrandLogo from "@/components/brand-logo";
-import { DEFAULT_LOGO } from "@/lib/brand-defaults";
+import { DEFAULT_LOGO, DEFAULT_MARK } from "@/lib/brand-defaults";
 
 type Brand = { logoUrl: string | null; markUrl: string | null };
 
 export default function LogoAdmin() {
-  const [brand, setBrand] = useState<Brand>({ logoUrl: DEFAULT_LOGO, markUrl: DEFAULT_LOGO });
+  const [brand, setBrand] = useState<Brand>({ logoUrl: DEFAULT_LOGO, markUrl: DEFAULT_MARK });
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [enviando, setEnviando] = useState<"logoUrl" | "markUrl" | null>(null);

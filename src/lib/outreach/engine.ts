@@ -23,6 +23,20 @@ const GRACE_HOURS = 48;
 /** Backoff de falha de envio; depois da última, a conversa vai pra FALHOU. */
 const FAILURE_BACKOFF_HOURS = [2, 6, 24];
 
+/**
+ * Um "claim" mais velho que isso é considerado abandonado e pode ser pego de
+ * novo. Sem essa expiração, uma tarefa reclamada por um worker que morreu antes
+ * de liberar ficaria PENDENTE e INVISÍVEL pra sempre — nunca dispararia.
+ */
+const CLAIM_STALE_MS = 10 * 60 * 1000;
+
+function claimAberto() {
+  return [
+    { claimedAt: null },
+    { claimedAt: { lt: new Date(Date.now() - CLAIM_STALE_MS) } },
+  ];
+}
+
 /** Estados em que o motor ainda tem o que fazer (agenda follow-up). */
 const ACTIVE_STATUSES: ConversationStatus[] = ["ENVIADO", "RESPONDEU"];
 
@@ -221,7 +235,7 @@ async function runTask(
   // instâncias do worker) passariam pelo mesmo `if` e mandariam a mensagem duas
   // vezes pra mesma loja.
   const claim = await prisma.outreachTask.updateMany({
-    where: { id: taskId, status: "PENDENTE", claimedAt: null },
+    where: { id: taskId, status: "PENDENTE", OR: claimAberto() },
     data: { claimedAt: new Date(), attempts: { increment: 1 } },
   });
   if (claim.count === 0) return "pulado";
@@ -651,7 +665,7 @@ export async function tick(channel: Channel): Promise<TickResult> {
   }
 
   const dueTask = await prisma.outreachTask.findFirst({
-    where: { status: "PENDENTE", claimedAt: null, scheduledFor: { lte: new Date() } },
+    where: { status: "PENDENTE", scheduledFor: { lte: new Date() }, OR: claimAberto() },
     orderBy: { scheduledFor: "asc" },
     select: { id: true },
   });

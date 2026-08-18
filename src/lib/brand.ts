@@ -1,7 +1,7 @@
 // Identidade visual editável pelo painel. Sem logo enviada, o sistema usa o
 // monograma SVG embutido (BrandLogo) — nunca fica sem marca.
 import { prisma } from "./db";
-import { DEFAULT_LOGO } from "./brand-defaults";
+import { DEFAULT_LOGO, DEFAULT_MARK } from "./brand-defaults";
 
 export const BRAND_ID = "brand";
 
@@ -12,9 +12,9 @@ export type Brand = {
   markUrl: string | null;
 };
 
-export { DEFAULT_LOGO };
+export { DEFAULT_LOGO, DEFAULT_MARK };
 
-export const DEFAULT_BRAND: Brand = { logoUrl: DEFAULT_LOGO, markUrl: DEFAULT_LOGO };
+export const DEFAULT_BRAND: Brand = { logoUrl: DEFAULT_LOGO, markUrl: DEFAULT_MARK };
 
 /**
  * Lê a marca. Nunca lança: se a migration ainda não rodou, cai no padrão em
@@ -28,7 +28,7 @@ export async function getBrand(): Promise<Brand> {
     // desenhado, que agora é só a última rede de segurança).
     return {
       logoUrl: row.logoUrl ?? DEFAULT_LOGO,
-      markUrl: row.markUrl ?? row.logoUrl ?? DEFAULT_LOGO,
+      markUrl: row.markUrl ?? row.logoUrl ?? DEFAULT_MARK,
     };
   } catch {
     return DEFAULT_BRAND;
@@ -41,6 +41,6 @@ export function sanitizeLogoUrl(v: string | null | undefined): string | null {
   if (!t) return null;
   // Aceita upload nosso ou a logo oficial do projeto. Qualquer outra coisa
   // (inclusive URL externa) vira null e cai no padrão.
-  if (t === DEFAULT_LOGO) return t;
+  if (t === DEFAULT_LOGO || t === DEFAULT_MARK) return t;
   return t.startsWith("/uploads/") ? t : null;
 }

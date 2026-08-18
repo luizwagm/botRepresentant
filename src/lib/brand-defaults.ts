@@ -2,5 +2,12 @@
 // servidor quanto em client components. (src/lib/brand.ts importa o Prisma e
 // NÃO pode ser usado no cliente.)
 
-/** Logo oficial embutida no projeto, servida de /public. */
-export const DEFAULT_LOGO = "/logo.jpeg";
+/**
+ * Logo principal: lockup HORIZONTAL (monograma + nome + "ATACADO"), montado a
+ * partir da arte oficial. É o formato que cabe num cabeçalho — a arte quadrada
+ * original ficava pequena demais pra se ler.
+ */
+export const DEFAULT_LOGO = "/logo-horizontal.png";
+
+/** Símbolo quadrado (ícone/avatar): a arte original completa. */
+export const DEFAULT_MARK = "/logo.jpeg";

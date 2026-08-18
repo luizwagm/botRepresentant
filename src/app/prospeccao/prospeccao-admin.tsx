@@ -141,7 +141,7 @@ export default function ProspeccaoAdmin() {
     })();
   }, [loadSettings, loadCanal]);
 
-  async function toggleAutomacao(enabled: boolean) {
+  async function toggleAutomacao(enabled: boolean): Promise<void> {
     const res = await fetch("/api/outreach/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -222,7 +222,7 @@ export default function ProspeccaoAdmin() {
       </div>
 
       {aba === "conversas" && <Conversas />}
-      {aba === "agendar" && <Agendar />}
+      {aba === "agendar" && <Agendar onLigar={() => toggleAutomacao(true)} janela={settings} />}
       {aba === "conexao" && <Conexao info={canal} onRefresh={loadCanal} />}
       {aba === "config" && settings && <Config settings={settings} onSaved={setSettings} />}
     </div>
@@ -598,8 +598,9 @@ const MOTIVO_LABEL: Record<string, string> = {
   teto_diario: "O teto diário de mensagens já foi atingido.",
 };
 
-function DiagnosticoFila() {
+function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
   const [d, setD] = useState<Diagnostico | null>(null);
+  const [ligando, setLigando] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -665,11 +666,31 @@ function DiagnosticoFila() {
       {d.impedimentos.length > 0 && (
         <ul className="mt-3 space-y-1 border-t border-zinc-200/70 pt-3">
           {d.impedimentos.map((m) => (
-            <li key={m} className="flex items-start gap-2 text-sm text-zinc-800">
+            <li key={m} className="flex flex-wrap items-center gap-2 text-sm text-zinc-800">
               <span aria-hidden>&#9888;</span>
               <span>{MOTIVO_LABEL[m] ?? m}</span>
+              {m === "automacao_desligada" && onLigar && (
+                <button
+                  onClick={async () => {
+                    setLigando(true);
+                    await onLigar();
+                    await load();
+                    setLigando(false);
+                  }}
+                  disabled={ligando}
+                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {ligando ? "Ligando..." : "Ligar agora"}
+                </button>
+              )}
             </li>
           ))}
+          {d.atrasadas > 0 && (
+            <li className="pt-1 text-xs text-zinc-600">
+              Assim que a trava for liberada, {d.atrasadas} contato(s) com horário vencido
+              dispara(m) no próximo ciclo — nada expira por atraso.
+            </li>
+          )}
         </ul>
       )}
     </div>
@@ -679,7 +700,13 @@ function DiagnosticoFila() {
 // ==========================================================================
 //  Agendar
 // ==========================================================================
-function Agendar() {
+function Agendar({
+  onLigar,
+  janela,
+}: {
+  onLigar?: () => Promise<void>;
+  janela?: Pick<Settings, "windowStartHour" | "windowEndHour" | "sendOnWeekends"> | null;
+}) {
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [q, setQ] = useState("");
@@ -743,6 +770,26 @@ function Agendar() {
 
   const disponiveis = useMemo(() => leads.filter((l) => !l.bloqueio), [leads]);
 
+  // Horário fora da janela de envio não dispara na hora marcada — ele espera a
+  // janela abrir. Avisar aqui evita a surpresa de "agendei 8h e não saiu".
+  const avisoJanela = useMemo(() => {
+    if (!quando || !janela) return null;
+    const d = new Date(quando);
+    if (Number.isNaN(d.getTime())) return null;
+    const h = d.getHours();
+    const fds = d.getDay() === 0 || d.getDay() === 6;
+    if (fds && !janela.sendOnWeekends) {
+      return "Fim de semana está fora do envio configurado — vai sair no próximo dia útil.";
+    }
+    if (h < janela.windowStartHour) {
+      return `Antes da janela de envio (${janela.windowStartHour}h–${janela.windowEndHour}h) — vai disparar às ${janela.windowStartHour}h.`;
+    }
+    if (h >= janela.windowEndHour) {
+      return `Depois da janela de envio (${janela.windowStartHour}h–${janela.windowEndHour}h) — vai disparar no dia seguinte, às ${janela.windowStartHour}h.`;
+    }
+    return null;
+  }, [quando, janela]);
+
   async function agendar() {
     if (sel.size === 0) {
       setErro("Selecione ao menos uma loja.");
@@ -779,7 +826,7 @@ function Agendar() {
 
   return (
     <div className="space-y-6">
-      <DiagnosticoFila />
+      <DiagnosticoFila onLigar={onLigar} />
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-base font-semibold">1. Escolha as lojas</h2>
@@ -939,6 +986,7 @@ function Agendar() {
               onChange={(e) => setQuando(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
             />
+            {avisoJanela && <p className="mt-1 text-xs text-amber-700">{avisoJanela}</p>}
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-medium text-zinc-700">Observação (opcional)</label>
@@ -965,7 +1013,12 @@ function Agendar() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-base font-semibold">Agendamentos</h2>
+        <h2 className="text-base font-semibold">Agendamentos</h2>
+        <p className="mb-3 mt-0.5 text-xs text-zinc-500">
+          A fila é drenada <strong>do horário mais antigo para o mais novo</strong>, um contato por
+          vez com intervalo variável. Se um lote atrasado ainda tem pendências, ele sai primeiro —
+          inclusive antes de um lote mais novo que acabou de vencer.
+        </p>
         {batches.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
             Nenhum agendamento ainda.
