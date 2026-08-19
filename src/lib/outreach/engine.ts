@@ -9,7 +9,7 @@ import type { ConversationStatus, Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { normalizeBrazilPhone, isMobileBr, brPhoneVariants } from "../phone";
 import type { Channel } from "./channel";
-import { getAiSettings, withinSendWindow, type AiSettings } from "./settings";
+import { getAiSettings, withinSendWindow, publicBaseUrlOk, type AiSettings } from "./settings";
 import { nextSalesMessage, type CatalogItem, type TranscriptTurn } from "./salesman";
 
 /**
@@ -125,6 +125,7 @@ export type GateReason =
   | "ok"
   | "automacao_desligada"
   | "canal_offline"
+  | "endereco_publico_invalido"
   | "fora_da_janela"
   | "teto_diario";
 
@@ -132,6 +133,8 @@ export type GateReason =
 export async function sendGate(settings: AiSettings, channel: Channel): Promise<GateReason> {
   if (!settings.enabled) return "automacao_desligada";
   if (!channel.isReady()) return "canal_offline";
+  // Trava dura: sem endereço público a IA mandaria link localhost pro lojista.
+  if (!publicBaseUrlOk()) return "endereco_publico_invalido";
   if (!withinSendWindow(settings, new Date())) return "fora_da_janela";
   if ((await sentToday()) >= settings.dailyCap) return "teto_diario";
   return "ok";
@@ -146,6 +149,7 @@ async function recordOutbound(opts: {
   body: string;
   viaAi: boolean;
   externalId: string | null;
+  deliveredTo?: string | null;
 }): Promise<void> {
   await prisma.conversationMessage.create({
     data: {
@@ -154,6 +158,7 @@ async function recordOutbound(opts: {
       body: opts.body,
       viaAi: opts.viaAi,
       externalId: opts.externalId,
+      deliveredTo: opts.deliveredTo ?? null,
     },
   });
 }
@@ -339,9 +344,11 @@ async function runTask(
   }
 
   let externalId: string | null = null;
+  let entregueA: string | null = null;
   try {
     const sent = await channel.send(to!, decision.message);
     externalId = sent.externalId;
+    entregueA = sent.deliveredTo ?? null;
     await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -370,6 +377,7 @@ async function runTask(
       body: decision.message,
       viaAi: true,
       externalId,
+      deliveredTo: entregueA,
     });
     await prisma.outreachTask.update({
       where: { id: task.id },
@@ -488,9 +496,11 @@ async function runFollowUp(
   }
 
   let externalId: string | null = null;
+  let entregueA: string | null = null;
   try {
     const sent = await channel.send(to!, decision.message);
     externalId = sent.externalId;
+    entregueA = sent.deliveredTo ?? null;
     await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -507,6 +517,7 @@ async function runFollowUp(
     body: decision.message,
     viaAi: true,
     externalId,
+    deliveredTo: entregueA,
   });
 
   const nextStage = stage + 1;
@@ -626,6 +637,7 @@ export async function handleInbound(opts: {
       body: decision.message,
       viaAi: true,
       externalId: sent.externalId,
+      deliveredTo: sent.deliveredTo ?? null,
     });
 
     // Conversa engajada TAMBÉM entra na cadência: sem isto, quem responde e

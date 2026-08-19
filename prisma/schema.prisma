@@ -230,6 +230,9 @@ model ConversationMessage {
   /// id da mensagem no canal (WhatsApp), pra deduplicar webhooks/eventos.
   externalId     String?          @unique @map("external_id")
   error          String?          @db.Text
+  /// Numero que REALMENTE recebeu (o WhatsApp confirma a conta; pode diferir do
+  /// cadastro por causa do nono digito). Null em mensagem de entrada.
+  deliveredTo    String?          @map("delivered_to")
   createdAt      DateTime         @default(now()) @map("created_at")
 
   conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)

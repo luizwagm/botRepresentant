@@ -80,6 +80,8 @@ type Message = {
   body: string;
   viaAi: boolean;
   createdAt: string;
+  /** Número que o WhatsApp confirmou como destino real do envio. */
+  deliveredTo?: string | null;
 };
 
 type ConversationDetail = Conversation & { messages: Message[] };
@@ -404,6 +406,10 @@ function ConversaModal({
                 <div className={`mt-1 text-[10px] ${m.direction === "SAIDA" ? "text-emerald-100" : "text-zinc-400"}`}>
                   {fmt(m.createdAt)}
                   {m.direction === "SAIDA" && (m.viaAi ? " · IA" : " · você")}
+                  {/* Confirma pra QUAL número o WhatsApp entregou. Sem isso não
+                      dá pra saber se a mensagem foi pro número certo. */}
+                  {m.direction === "SAIDA" &&
+                    (m.deliveredTo ? ` · entregue a ${m.deliveredTo}` : " · destino não confirmado")}
                 </div>
               </div>
             </div>
@@ -594,6 +600,8 @@ const MOTIVO_LABEL: Record<string, string> = {
   automacao_desligada: "A automação está DESLIGADA (chave geral no topo desta página).",
   worker_offline: "O worker de prospecção está fora do ar no servidor.",
   whatsapp_desconectado: "O WhatsApp não está conectado — leia o QR na aba Conexão.",
+  endereco_publico_invalido:
+    "PUBLIC_BASE_URL não configurada no servidor: os links do catálogo sairiam como localhost. Defina PUBLIC_BASE_URL=https://atacado.luizaugust.me no .env e reinicie.",
   fora_da_janela: "Fora do horário de envio configurado.",
   teto_diario: "O teto diário de mensagens já foi atingido.",
 };

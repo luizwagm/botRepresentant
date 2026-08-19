@@ -1,5 +1,6 @@
 // Configuracao do vendedor de IA e das travas de envio (singleton "ai").
 import { prisma } from "../db";
+import { env } from "../env";
 
 export const AI_SETTINGS_ID = "ai";
 
@@ -93,6 +94,20 @@ export async function saveAiSettings(patch: Partial<AiSettings>): Promise<AiSett
     update: next,
   });
   return next;
+}
+
+/**
+ * O endereço público está configurado de verdade?
+ *
+ * Em produção, PUBLIC_BASE_URL não definida cai no padrão localhost — e a IA
+ * mandaria "http://localhost:3030/catalogo/publico" pro lojista, um link que
+ * não abre pra ninguém. É melhor NÃO enviar do que enviar link quebrado.
+ */
+export function publicBaseUrlOk(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  const u = env.publicBaseUrl ?? "";
+  if (!/^https?:\/\//i.test(u)) return false;
+  return !/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(u);
 }
 
 /** Fuso do negocio — nao do servidor (que costuma rodar em UTC). */

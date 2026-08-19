@@ -4,13 +4,14 @@
 // ficava mudo quando uma delas segurava a fila — o agendamento simplesmente
 // "não acontecia". Este diagnóstico responde a pergunta na tela.
 import { prisma } from "../db";
-import { getAiSettings, withinSendWindow, BUSINESS_TZ } from "./settings";
+import { getAiSettings, withinSendWindow, publicBaseUrlOk, BUSINESS_TZ } from "./settings";
 import { readChannelStatus } from "./channel-status";
 
 export type Impedimento =
   | "automacao_desligada"
   | "worker_offline"
   | "whatsapp_desconectado"
+  | "endereco_publico_invalido"
   | "fora_da_janela"
   | "teto_diario";
 
@@ -72,6 +73,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
   if (!settings.enabled) impedimentos.push("automacao_desligada");
   if (!canal.workerOnline) impedimentos.push("worker_offline");
   else if (!whatsappConectado) impedimentos.push("whatsapp_desconectado");
+  if (!publicBaseUrlOk()) impedimentos.push("endereco_publico_invalido");
   if (!dentroDaJanela) impedimentos.push("fora_da_janela");
   if (enviadosHoje >= settings.dailyCap) impedimentos.push("teto_diario");
 
