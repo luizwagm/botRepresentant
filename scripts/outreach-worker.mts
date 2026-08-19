@@ -26,6 +26,7 @@ import makeWASocket, {
 } from "@whiskeysockets/baileys";
 import qrcode from "qrcode-terminal";
 import { prisma } from "../src/lib/db";
+import { brPhoneVariants } from "../src/lib/phone";
 import type { Channel } from "../src/lib/outreach/channel";
 import { handleHumanEcho, handleInbound, tick } from "../src/lib/outreach/engine";
 import {
@@ -76,9 +77,44 @@ function readText(msg: WAMessage): string | null {
   return m.conversation ?? m.extendedTextMessage?.text ?? null;
 }
 
-/** 5581999998888 -> 5581999998888@s.whatsapp.net */
-function toJid(phone: string): string {
-  return `${phone}@s.whatsapp.net`;
+/**
+ * Descobre o JID REAL da conta antes de enviar.
+ *
+ * Enviar pra um número que não tem conta no WhatsApp NÃO dá erro: o servidor
+ * aceita, devolve um id de mensagem e a mensagem simplesmente não existe pra
+ * ninguém. É a armadilha do nono dígito no Brasil — a linha tem 9 dígitos mas
+ * a conta costuma estar registrada sem o 9 fora de SP/RJ.
+ *
+ * Por isso consultamos onWhatsApp() com as duas variantes e usamos o JID que o
+ * servidor confirmar. Sem conta em nenhuma variante, falha explicitamente.
+ */
+const jidCache = new Map<string, string>();
+
+async function resolveJid(phone: string): Promise<string> {
+  const cache = jidCache.get(phone);
+  if (cache) return cache;
+  if (!sock) throw new Error("WhatsApp desconectado");
+
+  for (const variante of brPhoneVariants(phone)) {
+    let achado;
+    try {
+      const r = await sock.onWhatsApp(variante);
+      achado = r?.find((x) => x?.exists);
+    } catch (e) {
+      console.warn(`[wa] onWhatsApp falhou pra ${variante}:`, e instanceof Error ? e.message : e);
+      continue;
+    }
+    if (achado?.jid) {
+      if (variante !== phone) {
+        console.log(`[wa] ${phone} está no WhatsApp como ${variante} (nono dígito).`);
+      }
+      jidCache.set(phone, achado.jid);
+      return achado.jid;
+    }
+  }
+
+  // Prefixo reconhecido pelo motor: erro permanente, não adianta repetir.
+  throw new Error(`SEM_CONTA_WHATSAPP: ${phone} não tem conta no WhatsApp`);
 }
 
 /** 5581999998888@s.whatsapp.net -> 5581999998888 */
@@ -118,10 +154,13 @@ const channel: Channel = {
   isReady: () => ready && sock !== null,
   async send(to, text) {
     if (!sock) throw new Error("WhatsApp desconectado");
-    const sent = await sock.sendMessage(toJid(to), { text });
+    const jid = await resolveJid(to);
+    const sent = await sock.sendMessage(jid, { text });
     const id = sent?.key?.id ?? null;
     if (id) lembrarNosso(id);
-    return { externalId: id };
+    // Devolve o número que realmente recebeu — o motor grava isso no lead pra
+    // a resposta ser reconhecida depois.
+    return { externalId: id, deliveredTo: fromJid(jid) };
   },
 };
 

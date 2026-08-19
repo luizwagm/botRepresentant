@@ -1,7 +1,15 @@
 // Contrato do canal de envio. O motor fala com esta interface, nunca com o
 // Baileys direto — assim o app Next.js nao precisa importar a biblioteca do
 // WhatsApp (que so roda no worker) e da pra testar o motor sem canal real.
-export type SendResult = { externalId: string | null };
+export type SendResult = {
+  externalId: string | null;
+  /**
+   * Numero que REALMENTE recebeu (o WhatsApp pode ter a conta registrada numa
+   * variante diferente da que pedimos — o nono digito brasileiro). O motor usa
+   * isso pra corrigir o cadastro do lead.
+   */
+  deliveredTo?: string | null;
+};
 
 export type Channel = {
   /** Nome pra log ("whatsapp", "seco"...). */
@@ -16,7 +24,7 @@ export type Channel = {
 export const dryChannel: Channel = {
   name: "seco",
   isReady: () => true,
-  async send() {
-    return { externalId: null };
+  async send(to: string) {
+    return { externalId: null, deliveredTo: to };
   },
 };

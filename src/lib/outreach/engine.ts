@@ -7,7 +7,7 @@
 // ==========================================================================
 import type { ConversationStatus, Prisma } from "@prisma/client";
 import { prisma } from "../db";
-import { normalizeBrazilPhone, isMobileBr } from "../phone";
+import { normalizeBrazilPhone, isMobileBr, brPhoneVariants } from "../phone";
 import type { Channel } from "./channel";
 import { getAiSettings, withinSendWindow, type AiSettings } from "./settings";
 import { nextSalesMessage, type CatalogItem, type TranscriptTurn } from "./salesman";
@@ -84,6 +84,27 @@ async function loadTranscript(conversationId: string): Promise<TranscriptTurn[]>
     from: m.direction === "ENTRADA" ? ("loja" as const) : ("nos" as const),
     body: m.body,
   }));
+}
+
+/**
+ * Procura o lead pelo número aceitando as duas variantes do nono dígito. A
+ * loja pode responder de "5581988887777" enquanto o cadastro tem
+ * "55819988887777" (ou o contrário) — comparar por igualdade exata faria a
+ * resposta ser descartada como "sem lead correspondente".
+ */
+async function acharLeadPorTelefone(phone: string) {
+  return prisma.lead.findFirst({ where: { whatsapp: { in: brPhoneVariants(phone) } } });
+}
+
+/**
+ * O WhatsApp confirmou que a conta é outra variante do número: corrige o
+ * cadastro pra que a RESPOSTA da loja seja reconhecida e o próximo envio já
+ * saia certo.
+ */
+async function corrigirNumero(leadId: string, atual: string | null, entregue: string | null | undefined) {
+  if (!entregue || entregue === atual) return;
+  await prisma.lead.update({ where: { id: leadId }, data: { whatsapp: entregue } });
+  console.log(`[outreach] número do lead corrigido: ${atual} -> ${entregue}`);
 }
 
 // --------------------------------------------------------------------------
@@ -321,8 +342,23 @@ async function runTask(
   try {
     const sent = await channel.send(to!, decision.message);
     externalId = sent.externalId;
+    await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
   } catch (e) {
-    await soltar(e instanceof Error ? e.message : String(e));
+    const msg = e instanceof Error ? e.message : String(e);
+    // Número sem conta no WhatsApp: repetir não resolve. Cancela e marca o
+    // lead, em vez de gastar 3 tentativas e virar "falhou" sem explicação.
+    if (msg.startsWith("SEM_CONTA_WHATSAPP")) {
+      await prisma.outreachTask.update({
+        where: { id: task.id },
+        data: { status: "CANCELADO", lastError: "número não tem conta no WhatsApp", claimedAt: null },
+      });
+      await setStatus(conversation.id, lead.id, "FALHOU", { nextActionAt: null });
+      await prisma.lead
+        .update({ where: { id: lead.id }, data: { funnelStage: "SEM_WHATSAPP" } })
+        .catch(() => {});
+      return "falhou";
+    }
+    await soltar(msg);
     return "falhou";
   }
 
@@ -455,8 +491,14 @@ async function runFollowUp(
   try {
     const sent = await channel.send(to!, decision.message);
     externalId = sent.externalId;
+    await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
   } catch (e) {
-    await falhar(e instanceof Error ? e.message : String(e));
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith("SEM_CONTA_WHATSAPP")) {
+      await setStatus(conv.id, conv.leadId, "FALHOU", { nextActionAt: null });
+      return "encerrado";
+    }
+    await falhar(msg);
     return "pulado";
   }
 
@@ -509,7 +551,7 @@ export async function handleInbound(opts: {
   const phone = normalizeBrazilPhone(opts.fromE164);
   if (!phone) return;
 
-  const lead = await prisma.lead.findFirst({ where: { whatsapp: phone } });
+  const lead = await acharLeadPorTelefone(phone);
   if (!lead) {
     console.warn(`[outreach] mensagem de ${phone} sem lead correspondente — ignorada.`);
     return;
@@ -578,6 +620,7 @@ export async function handleInbound(opts: {
     });
 
     const sent = await opts.channel.send(phone, decision.message);
+    await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
     await recordOutbound({
       conversationId: conv.id,
       body: decision.message,
@@ -811,7 +854,7 @@ export async function handleHumanEcho(opts: {
   const phone = normalizeBrazilPhone(opts.toE164);
   if (!phone) return;
 
-  const lead = await prisma.lead.findFirst({ where: { whatsapp: phone } });
+  const lead = await acharLeadPorTelefone(phone);
   if (!lead) return;
 
   const conv = await prisma.conversation.findUnique({ where: { leadId: lead.id } });

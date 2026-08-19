@@ -45,3 +45,31 @@ export function whatsappLink(phoneRaw: string | null | undefined, message: strin
   if (!normalized) return null;
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Variantes de um celular BR em E.164: COM e SEM o nono dígito.
+ *
+ * O WhatsApp brasileiro é inconsistente: a linha tem 9 dígitos (55 + DDD + 9 +
+ * 8), mas em boa parte do país — sobretudo fora de SP/RJ — a CONTA está
+ * registrada sem o 9 (55 + DDD + 8). Mandar pro formato errado não dá erro:
+ * o servidor aceita, devolve id de mensagem e nada é entregue.
+ *
+ * Sempre retorna a forma canônica primeiro (a que foi passada).
+ */
+export function brPhoneVariants(e164: string | null | undefined): string[] {
+  const n = (e164 ?? "").replace(/\D/g, "");
+  if (!n.startsWith("55")) return n ? [n] : [];
+
+  const ddd = n.slice(2, 4);
+  const resto = n.slice(4);
+
+  if (resto.length === 9 && resto.startsWith("9")) {
+    // Com o 9 -> acrescenta a variante sem ele.
+    return [n, `55${ddd}${resto.slice(1)}`];
+  }
+  if (resto.length === 8) {
+    // Sem o 9 -> acrescenta a variante com ele.
+    return [n, `55${ddd}9${resto}`];
+  }
+  return [n];
+}
