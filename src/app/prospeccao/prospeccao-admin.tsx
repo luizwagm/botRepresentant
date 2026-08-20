@@ -802,6 +802,31 @@ function Agendar({
 
   const disponiveis = useMemo(() => leads.filter((l) => !l.bloqueio), [leads]);
 
+  async function cancelarLote(b: Batch) {
+    const pendentes = b.counts.PENDENTE;
+    if (pendentes === 0) return;
+    if (
+      !confirm(
+        `Cancelar ${pendentes} contato(s) que ainda não saíram deste agendamento?
+
+` +
+          `O que já foi enviado permanece no histórico.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/outreach/schedule/${b.id}`, { method: "DELETE" });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error ?? "Falha ao cancelar.");
+      setMsg(`${j.cancelados} contato(s) cancelado(s).`);
+      setErro(null);
+      await loadBatches();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao cancelar.");
+    }
+  }
+
   // Horário fora da janela de envio não dispara na hora marcada — ele espera a
   // janela abrir. Avisar aqui evita a surpresa de "agendei 8h e não saiu".
   const avisoJanela = useMemo(() => {
@@ -1063,6 +1088,7 @@ function Agendar({
                   <th className="px-4 py-3">Quando</th>
                   <th className="px-4 py-3">Observação</th>
                   <th className="px-4 py-3">Andamento</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -1075,6 +1101,19 @@ function Agendar({
                       {b.counts.PENDENTE > 0 && ` · ${b.counts.PENDENTE} na fila`}
                       {b.counts.FALHOU > 0 && ` · ${b.counts.FALHOU} falharam`}
                       {b.counts.CANCELADO > 0 && ` · ${b.counts.CANCELADO} cancelados`}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {b.counts.PENDENTE > 0 ? (
+                        <button
+                          onClick={() => void cancelarLote(b)}
+                          title={`Cancelar os ${b.counts.PENDENTE} contatos que ainda não saíram`}
+                          className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                        >
+                          Cancelar fila
+                        </button>
+                      ) : (
+                        <span className="text-xs text-zinc-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
