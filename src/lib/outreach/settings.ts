@@ -104,7 +104,10 @@ export async function saveAiSettings(patch: Partial<AiSettings>): Promise<AiSett
  * não abre pra ninguém. É melhor NÃO enviar do que enviar link quebrado.
  */
 export function publicBaseUrlOk(): boolean {
-  if (process.env.NODE_ENV !== "production") return true;
+  // Vale SEMPRE: rodar o worker com `npm run outreach:worker` (sem NODE_ENV)
+  // fala com o WhatsApp real, e era justamente aí que a guarda não existia.
+  // Pra desenvolvimento consciente, use OUTREACH_ALLOW_LOCAL_LINKS=1.
+  if (process.env.OUTREACH_ALLOW_LOCAL_LINKS === "1") return true;
   const u = env.publicBaseUrl ?? "";
   if (!/^https?:\/\//i.test(u)) return false;
   return !/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(u);

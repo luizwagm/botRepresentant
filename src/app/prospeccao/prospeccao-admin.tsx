@@ -44,6 +44,8 @@ type Diagnostico = {
   atrasadas: number;
   proximaTarefa: string | null;
   followUpsVencidos: number;
+  recusadas24h: number;
+  ultimaRecusa: string | null;
 };
 
 type Elegivel = {
@@ -80,8 +82,11 @@ type Message = {
   body: string;
   viaAi: boolean;
   createdAt: string;
-  /** Número que o WhatsApp confirmou como destino real do envio. */
+  /** Número que o WhatsApp confirmou ter conta (não prova entrega). */
   deliveredTo?: string | null;
+  /** Veredito do servidor: SERVIDOR | ENTREGUE | LIDA | ERRO. */
+  deliveryStatus?: string | null;
+  deliveryError?: string | null;
 };
 
 type ConversationDetail = Conversation & { messages: Message[] };
@@ -408,8 +413,18 @@ function ConversaModal({
                   {m.direction === "SAIDA" && (m.viaAi ? " · IA" : " · você")}
                   {/* Confirma pra QUAL número o WhatsApp entregou. Sem isso não
                       dá pra saber se a mensagem foi pro número certo. */}
-                  {m.direction === "SAIDA" &&
-                    (m.deliveredTo ? ` · entregue a ${m.deliveredTo}` : " · destino não confirmado")}
+                  {m.direction === "SAIDA" && m.viaAi && m.deliveredTo && ` · conta ${m.deliveredTo}`}
+                  {m.direction === "SAIDA" && m.viaAi && m.deliveryStatus && (
+                    <span className={m.deliveryStatus === "ERRO" ? " font-semibold text-red-200" : ""}>
+                      {m.deliveryStatus === "ERRO"
+                        ? " · RECUSADA pelo WhatsApp"
+                        : m.deliveryStatus === "SERVIDOR"
+                          ? " · aceita pelo servidor"
+                          : m.deliveryStatus === "ENTREGUE"
+                            ? " · entregue"
+                            : " · lida"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -670,6 +685,15 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
           Atualizar
         </button>
       </div>
+
+      {d.recusadas24h > 0 && (
+        <div className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <strong>{d.recusadas24h} mensagem(ns) recusada(s) pelo WhatsApp nas últimas 24h.</strong>{" "}
+          {d.ultimaRecusa ?? ""} Isso costuma significar que o número foi restringido para iniciar
+          conversas novas. Pare os disparos, use o número normalmente por alguns dias e reduza o
+          volume diário antes de voltar.
+        </div>
+      )}
 
       {d.impedimentos.length > 0 && (
         <ul className="mt-3 space-y-1 border-t border-zinc-200/70 pt-3">

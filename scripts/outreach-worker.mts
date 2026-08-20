@@ -28,7 +28,7 @@ import qrcode from "qrcode-terminal";
 import { prisma } from "../src/lib/db";
 import { brPhoneVariants } from "../src/lib/phone";
 import type { Channel } from "../src/lib/outreach/channel";
-import { handleHumanEcho, handleInbound, tick } from "../src/lib/outreach/engine";
+import { handleHumanEcho, handleInbound, registrarEntrega, tick } from "../src/lib/outreach/engine";
 import {
   consumeLogoutRequest,
   heartbeat,
@@ -95,15 +95,27 @@ async function resolveJid(phone: string): Promise<string> {
   if (cache) return cache;
   if (!sock) throw new Error("WhatsApp desconectado");
 
+  // "não existe" e "não consegui perguntar" são coisas MUITO diferentes: a
+  // primeira aposenta o lead, a segunda tem que ser tentada de novo.
+  let conclusivo = true;
+
   for (const variante of brPhoneVariants(phone)) {
-    let achado;
+    let r;
     try {
-      const r = await sock.onWhatsApp(variante);
-      achado = r?.find((x) => x?.exists);
+      r = await sock.onWhatsApp(variante);
     } catch (e) {
       console.warn(`[wa] onWhatsApp falhou pra ${variante}:`, e instanceof Error ? e.message : e);
+      conclusivo = false;
       continue;
     }
+    // O Baileys devolve undefined quando a consulta estoura o tempo (60s) —
+    // sem erro. Tratar isso como "não tem conta" aposentaria um lead bom.
+    if (!Array.isArray(r)) {
+      console.warn(`[wa] onWhatsApp sem resposta pra ${variante} (timeout?).`);
+      conclusivo = false;
+      continue;
+    }
+    const achado = r.find((x) => x?.exists && x?.jid);
     if (achado?.jid) {
       if (variante !== phone) {
         console.log(`[wa] ${phone} está no WhatsApp como ${variante} (nono dígito).`);
@@ -113,7 +125,10 @@ async function resolveJid(phone: string): Promise<string> {
     }
   }
 
-  // Prefixo reconhecido pelo motor: erro permanente, não adianta repetir.
+  if (!conclusivo) {
+    // Transitório: o motor reenfileira com backoff em vez de aposentar o lead.
+    throw new Error(`FALHA_VERIFICACAO: não consegui verificar ${phone} no WhatsApp`);
+  }
   throw new Error(`SEM_CONTA_WHATSAPP: ${phone} não tem conta no WhatsApp`);
 }
 
@@ -158,9 +173,8 @@ const channel: Channel = {
     const sent = await sock.sendMessage(jid, { text });
     const id = sent?.key?.id ?? null;
     if (id) lembrarNosso(id);
-    // Devolve o número que realmente recebeu — o motor grava isso no lead pra
-    // a resposta ser reconhecida depois.
-    return { externalId: id, deliveredTo: fromJid(jid) };
+    const ehTelefone = jid.endsWith("@s.whatsapp.net");
+    return { externalId: id, deliveredTo: ehTelefone ? fromJid(jid) : null };
   },
 };
 
@@ -209,6 +223,9 @@ async function connect(): Promise<void> {
 
     if (connection === "close") {
       ready = false;
+      // Resolução de JID é por sessão: mantê-la depois de cair (ou de trocar de
+      // número) poderia grudar um destino errado por semanas.
+      jidCache.clear();
       const status = (lastDisconnect?.error as { output?: { statusCode?: number } })?.output
         ?.statusCode;
       console.warn(`✗ WhatsApp desconectado (status ${status ?? "?"})`);
@@ -238,6 +255,33 @@ async function connect(): Promise<void> {
           void connect().catch((e) => console.error("[wa] falha ao reconectar:", e));
         }, 5_000);
       }
+    }
+  });
+
+  // O WhatsApp responde sobre CADA mensagem que mandamos. Sem ouvir isso, uma
+  // mensagem recusada pelo servidor (conta restrita pra iniciar conversa,
+  // destinatário inválido) fica gravada como "enviada" e o painel mente.
+  s.ev.on("messages.update", (updates) => {
+    for (const u of updates) {
+      const id = u.key?.id;
+      if (!id || !u.key?.fromMe) continue;
+      const st = u.update?.status;
+      if (st === undefined || st === null) continue;
+
+      // 0 = ERROR, 1 = PENDING, 2 = SERVER_ACK, 3 = DELIVERY_ACK, 4 = READ
+      let status: "SERVIDOR" | "ENTREGUE" | "LIDA" | "ERRO" | null = null;
+      if (st === 0) status = "ERRO";
+      else if (st === 2) status = "SERVIDOR";
+      else if (st === 3) status = "ENTREGUE";
+      else if (st >= 4) status = "LIDA";
+      if (!status) continue;
+
+      const motivo =
+        status === "ERRO"
+          ? `código ${u.update?.messageStubParameters?.[0] ?? "?"} — conta pode estar restrita para iniciar conversas`
+          : null;
+
+      enfileirar(() => registrarEntrega({ externalId: id, status, erro: motivo }));
     }
   });
 

@@ -233,6 +233,11 @@ model ConversationMessage {
   /// Numero que REALMENTE recebeu (o WhatsApp confirma a conta; pode diferir do
   /// cadastro por causa do nono digito). Null em mensagem de entrada.
   deliveredTo    String?          @map("delivered_to")
+  /// Veredito do servidor do WhatsApp: SERVIDOR | ENTREGUE | LIDA | ERRO.
+  /// Null = nao houve retorno (mensagem antiga ou canal sem confirmacao).
+  deliveryStatus String?          @map("delivery_status")
+  /// Motivo quando ERRO (ex.: 463 = conta restrita pra iniciar conversas).
+  deliveryError  String?          @map("delivery_error")
   createdAt      DateTime         @default(now()) @map("created_at")
 
   conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)

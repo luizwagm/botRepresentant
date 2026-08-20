@@ -63,9 +63,15 @@ log "$STEP"
 npm run build
 ok "Build concluído"
 
-STEP="Reiniciar aplicação (pm2 restart $PM2_APP)"
+STEP="Reiniciar aplicação (pm2 startOrRestart)"
 log "$STEP"
-pm2 restart "$PM2_APP"
+# startOrRestart relê o ecosystem (inclusive o bloco env, com TZ). `pm2 restart`
+# puro reaproveita o ambiente antigo do processo.
+if [ -f ecosystem.config.cjs ]; then
+  pm2 startOrRestart ecosystem.config.cjs --only "$PM2_APP" --update-env
+else
+  pm2 restart "$PM2_APP" --update-env
+fi
 ok "Aplicação reiniciada"
 
 # O worker da prospecção roda o motor de mensagens; sem reiniciar, ele seguiria
@@ -73,8 +79,11 @@ ok "Aplicação reiniciada"
 # não subiu o worker não vê o deploy falhar por causa disso.
 STEP="Reiniciar worker de prospecção (se existir)"
 log "$STEP"
-if pm2 describe "$PM2_WORKER" >/dev/null 2>&1; then
-  pm2 restart "$PM2_WORKER"
+if [ -f ecosystem.config.cjs ]; then
+  pm2 startOrRestart ecosystem.config.cjs --only "$PM2_WORKER" --update-env
+  ok "Worker reiniciado"
+elif pm2 describe "$PM2_WORKER" >/dev/null 2>&1; then
+  pm2 restart "$PM2_WORKER" --update-env
   ok "Worker reiniciado"
 else
   echo "  (worker '$PM2_WORKER' não registrado no pm2 — pulando)"

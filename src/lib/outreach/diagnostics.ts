@@ -33,6 +33,9 @@ export type Diagnostico = {
   proximaTarefa: Date | null;
   /** Follow-ups vencidos esperando. */
   followUpsVencidos: number;
+  /** Mensagens RECUSADAS pelo servidor do WhatsApp nas últimas 24h. */
+  recusadas24h: number;
+  ultimaRecusa: string | null;
 };
 
 export async function diagnosticar(): Promise<Diagnostico> {
@@ -66,6 +69,20 @@ export async function diagnosticar(): Promise<Diagnostico> {
     }),
   ]);
 
+  // Recusa do servidor é o sinal mais forte de conta restrita — e some no meio
+  // dos "enviados" se ninguém contar.
+  const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [recusadas24h, ultima] = await Promise.all([
+    prisma.conversationMessage.count({
+      where: { direction: "SAIDA", deliveryStatus: "ERRO", createdAt: { gte: ontem } },
+    }),
+    prisma.conversationMessage.findFirst({
+      where: { direction: "SAIDA", deliveryStatus: "ERRO" },
+      orderBy: { createdAt: "desc" },
+      select: { deliveryError: true },
+    }),
+  ]);
+
   const dentroDaJanela = withinSendWindow(settings, agora);
   const whatsappConectado = canal.state === "CONECTADO";
 
@@ -96,5 +113,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
     atrasadas,
     proximaTarefa: proxima?.scheduledFor ?? null,
     followUpsVencidos,
+    recusadas24h,
+    ultimaRecusa: ultima?.deliveryError ?? null,
   };
 }

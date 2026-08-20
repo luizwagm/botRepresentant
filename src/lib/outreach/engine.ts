@@ -93,18 +93,22 @@ async function loadTranscript(conversationId: string): Promise<TranscriptTurn[]>
  * resposta ser descartada como "sem lead correspondente".
  */
 async function acharLeadPorTelefone(phone: string) {
-  return prisma.lead.findFirst({ where: { whatsapp: { in: brPhoneVariants(phone) } } });
-}
+  // Exato primeiro: com duas lojas cadastradas em variantes uma da outra
+  // (duplicata do Places, matriz/filial), casar pela lista poderia jogar a
+  // resposta na conversa errada.
+  const exato = await prisma.lead.findFirst({ where: { whatsapp: phone } });
+  if (exato) return exato;
 
-/**
- * O WhatsApp confirmou que a conta é outra variante do número: corrige o
- * cadastro pra que a RESPOSTA da loja seja reconhecida e o próximo envio já
- * saia certo.
- */
-async function corrigirNumero(leadId: string, atual: string | null, entregue: string | null | undefined) {
-  if (!entregue || entregue === atual) return;
-  await prisma.lead.update({ where: { id: leadId }, data: { whatsapp: entregue } });
-  console.log(`[outreach] número do lead corrigido: ${atual} -> ${entregue}`);
+  const variantes = brPhoneVariants(phone);
+  const candidatos = await prisma.lead.findMany({
+    where: { whatsapp: { in: variantes } },
+    orderBy: { updatedAt: "desc" },
+    take: 2,
+  });
+  if (candidatos.length > 1) {
+    console.warn(`[outreach] ${phone} casa com ${candidatos.length} leads — usando o mais recente.`);
+  }
+  return candidatos[0] ?? null;
 }
 
 // --------------------------------------------------------------------------
@@ -349,7 +353,6 @@ async function runTask(
     const sent = await channel.send(to!, decision.message);
     externalId = sent.externalId;
     entregueA = sent.deliveredTo ?? null;
-    await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     // Número sem conta no WhatsApp: repetir não resolve. Cancela e marca o
@@ -501,7 +504,6 @@ async function runFollowUp(
     const sent = await channel.send(to!, decision.message);
     externalId = sent.externalId;
     entregueA = sent.deliveredTo ?? null;
-    await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.startsWith("SEM_CONTA_WHATSAPP")) {
@@ -614,7 +616,14 @@ export async function handleInbound(opts: {
   const settings = await getAiSettings();
   const gate = await sendGate(settings, opts.channel);
   if (gate !== "ok") {
+    // NÃO pode retornar seco: acabamos de zerar nextActionAt, e as duas queries
+    // do tick filtram por nextActionAt <= agora — NULL nunca casa e a conversa
+    // ficaria órfã pra sempre, mesmo depois de destravar o gate.
     console.warn(`[outreach] resposta de ${lead.name} não respondida agora: ${gate}`);
+    await prisma.conversation.update({
+      where: { id: conv.id },
+      data: { nextActionAt: new Date() },
+    });
     return;
   }
 
@@ -631,7 +640,6 @@ export async function handleInbound(opts: {
     });
 
     const sent = await opts.channel.send(phone, decision.message);
-    await corrigirNumero(lead.id, lead.whatsapp, sent.deliveredTo);
     await recordOutbound({
       conversationId: conv.id,
       body: decision.message,
@@ -654,6 +662,43 @@ export async function handleInbound(opts: {
     }
   } catch (e) {
     console.error(`[outreach] falha ao responder ${lead.name}:`, e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * O servidor do WhatsApp respondeu sobre uma mensagem que mandamos.
+ *
+ * sendMessage() resolve quando o pacote foi ESCRITO no socket — não quando o
+ * WhatsApp aceitou. Sem ouvir este retorno, uma mensagem recusada (conta
+ * restrita, destinatário inválido) fica gravada como "enviada" e o painel mente.
+ */
+export async function registrarEntrega(opts: {
+  externalId: string;
+  status: "SERVIDOR" | "ENTREGUE" | "LIDA" | "ERRO";
+  erro?: string | null;
+}): Promise<void> {
+  try {
+    const msg = await prisma.conversationMessage.findUnique({
+      where: { externalId: opts.externalId },
+      select: { id: true, conversationId: true, deliveryStatus: true },
+    });
+    if (!msg) return;
+
+    // Não rebaixa: ENTREGUE/LIDA não voltam pra SERVIDOR por evento fora de ordem.
+    const ordem = { SERVIDOR: 1, ENTREGUE: 2, LIDA: 3, ERRO: 9 };
+    const atual = (msg.deliveryStatus ?? "") as keyof typeof ordem;
+    if (ordem[atual] && ordem[atual] >= ordem[opts.status] && opts.status !== "ERRO") return;
+
+    await prisma.conversationMessage.update({
+      where: { id: msg.id },
+      data: { deliveryStatus: opts.status, deliveryError: opts.erro ?? null },
+    });
+
+    if (opts.status === "ERRO") {
+      console.error(`[outreach] WhatsApp RECUSOU a mensagem ${opts.externalId}: ${opts.erro ?? "?"}`);
+    }
+  } catch (e) {
+    console.error("[outreach] falha ao registrar entrega:", e instanceof Error ? e.message : e);
   }
 }
 
