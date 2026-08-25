@@ -40,6 +40,7 @@ type Diagnostico = {
   janela: { inicio: number; fim: number; fimDeSemana: boolean; fuso: string };
   enviadosHoje: number;
   tetoDiario: number;
+  mensagensHoje: number;
   naFila: number;
   atrasadas: number;
   proximaTarefa: string | null;
@@ -618,7 +619,7 @@ const MOTIVO_LABEL: Record<string, string> = {
   endereco_publico_invalido:
     "PUBLIC_BASE_URL não configurada no servidor: os links do catálogo sairiam como localhost. Defina PUBLIC_BASE_URL=https://atacado.luizaugust.me no .env e reinicie.",
   fora_da_janela: "Fora do horário de envio configurado.",
-  teto_diario: "O teto diário de mensagens já foi atingido.",
+  teto_diario: "O teto diário de contatos novos já foi atingido.",
 };
 
 function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
@@ -674,7 +675,14 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
             {d.proximaTarefa && ` · próxima: ${fmt(d.proximaTarefa)}`}
           </div>
           <div className="mt-0.5 text-xs text-zinc-500">
-            Enviadas hoje: {d.enviadosHoje}/{d.tetoDiario} · Janela {d.janela.inicio}h–{d.janela.fim}h
+            Contatos novos hoje: {d.enviadosHoje}/{d.tetoDiario}
+            {d.mensagensHoje > d.enviadosHoje && (
+              <span className="text-zinc-400">
+                {" "}
+                ({d.mensagensHoje} mensagens no total — follow-up e resposta não contam no teto)
+              </span>
+            )}
+            {" · "}Janela {d.janela.inicio}h–{d.janela.fim}h
             {d.janela.fimDeSemana ? " (inclui fim de semana)" : " (dias úteis)"}
           </div>
         </div>
@@ -1188,10 +1196,11 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
         <h2 className="text-base font-semibold text-amber-900">Travas de envio</h2>
         <p className="mt-1 text-xs text-amber-800">
           Volume alto, horário ruim e ritmo robótico são o que mais queima número no WhatsApp. Comece devagar
-          (10–20/dia) e vá subindo ao longo de semanas.
+          (10–20/dia) e vá subindo ao longo de semanas. O teto vale só para <strong>primeiro contato</strong>:
+          follow-ups e respostas da IA a quem já foi abordado não consomem a cota.
         </p>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Campo label="Máximo por dia">
+          <Campo label="Máximo de contatos NOVOS por dia">
             <input
               type="number"
               min={1}

@@ -115,13 +115,21 @@ async function acharLeadPorTelefone(phone: string) {
 //  Travas de envio (o canal não-oficial pune volume, horário e ritmo robótico)
 // --------------------------------------------------------------------------
 
-async function sentToday(): Promise<number> {
+/**
+ * Quantos CONTATOS NOVOS a automação iniciou hoje.
+ *
+ * O teto diário existe pra não queimar o número, e o que o WhatsApp pune é
+ * INICIAR conversa nova — responder dentro de uma conversa que já existe é
+ * comportamento normal de quem usa o app. Por isso só o primeiro contato
+ * consome o teto: follow-ups e respostas da IA à mesma loja não contam.
+ *
+ * Conta tarefas enviadas (runTask só roda em conversa virgem), não mensagens.
+ */
+export async function newContactsToday(): Promise<number> {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  // Só conta o que a AUTOMAÇÃO mandou: mensagem digitada pelo humano no
-  // celular não pode consumir o teto e travar a prospecção.
-  return prisma.conversationMessage.count({
-    where: { direction: "SAIDA", viaAi: true, createdAt: { gte: start } },
+  return prisma.outreachTask.count({
+    where: { status: "ENVIADO", sentAt: { gte: start } },
   });
 }
 
@@ -140,7 +148,7 @@ export async function sendGate(settings: AiSettings, channel: Channel): Promise<
   // Trava dura: sem endereço público a IA mandaria link localhost pro lojista.
   if (!publicBaseUrlOk()) return "endereco_publico_invalido";
   if (!withinSendWindow(settings, new Date())) return "fora_da_janela";
-  if ((await sentToday()) >= settings.dailyCap) return "teto_diario";
+  if ((await newContactsToday()) >= settings.dailyCap) return "teto_diario";
   return "ok";
 }
 

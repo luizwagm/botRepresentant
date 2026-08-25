@@ -24,8 +24,11 @@ export type Diagnostico = {
   whatsappConectado: boolean;
   dentroDaJanela: boolean;
   janela: { inicio: number; fim: number; fimDeSemana: boolean; fuso: string };
+  /** Contatos NOVOS iniciados hoje (o que consome o teto). */
   enviadosHoje: number;
   tetoDiario: number;
+  /** Mensagens totais da IA hoje, incluindo follow-up e resposta (não contam no teto). */
+  mensagensHoje: number;
   /** Tarefas esperando na fila. */
   naFila: number;
   /** Tarefas cujo horário já passou e continuam paradas. */
@@ -46,7 +49,11 @@ export async function diagnosticar(): Promise<Diagnostico> {
   const inicioDoDia = new Date();
   inicioDoDia.setHours(0, 0, 0, 0);
 
-  const [enviadosHoje, naFila, atrasadas, proxima, followUpsVencidos] = await Promise.all([
+  const [enviadosHoje, mensagensHoje, naFila, atrasadas, proxima, followUpsVencidos] = await Promise.all([
+    // Só contato novo consome o teto (ver newContactsToday no engine).
+    prisma.outreachTask.count({
+      where: { status: "ENVIADO", sentAt: { gte: inicioDoDia } },
+    }),
     prisma.conversationMessage.count({
       where: { direction: "SAIDA", viaAi: true, createdAt: { gte: inicioDoDia } },
     }),
@@ -109,6 +116,7 @@ export async function diagnosticar(): Promise<Diagnostico> {
     },
     enviadosHoje,
     tetoDiario: settings.dailyCap,
+    mensagensHoje,
     naFila,
     atrasadas,
     proximaTarefa: proxima?.scheduledFor ?? null,
