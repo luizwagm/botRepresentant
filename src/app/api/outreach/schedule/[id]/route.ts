@@ -7,6 +7,42 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
+ * Detalhe de um lote: cada loja com o que aconteceu com ela.
+ *
+ * O motivo da falha já era gravado em lastError, mas não aparecia em lugar
+ * nenhum — o painel só dizia "N falharam". É aqui que se responde "por quê".
+ */
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "não autenticado" }, { status: 401 });
+
+  const tasks = await prisma.outreachTask.findMany({
+    where: { batchId: id },
+    orderBy: [{ status: "asc" }, { scheduledFor: "asc" }],
+    select: {
+      id: true,
+      status: true,
+      attempts: true,
+      lastError: true,
+      sentAt: true,
+      lead: { select: { id: true, name: true, city: true, state: true, whatsapp: true } },
+    },
+  });
+
+  return NextResponse.json({
+    items: tasks.map((t) => ({
+      id: t.id,
+      status: t.status,
+      attempts: t.attempts,
+      erro: t.lastError,
+      sentAt: t.sentAt,
+      lead: t.lead,
+    })),
+  });
+}
+
+/**
  * Cancela um lote agendado.
  *
  * Só mexe no que ainda NÃO saiu: tarefas PENDENTE viram CANCELADO. O que já foi

@@ -42,6 +42,41 @@ export async function POST(
     }),
   ]);
 
+  // Registra a conversa também no núcleo da prospecção.
+  //
+  // Sem isso o motor não sabia que a loja já tinha sido abordada na mão: ela
+  // continuava aparecendo como disponível para agendamento e receberia um
+  // "primeiro contato" automático, apresentando a fábrica pra quem você já
+  // falou. A conversa nasce ASSUMIDA POR HUMANO com a IA desligada — quem
+  // começou a conversa foi você, e o robô não entra no meio sem você mandar.
+  if (body.channel === "whatsapp") {
+    try {
+      const conv = await prisma.conversation.upsert({
+        where: { leadId: id },
+        create: {
+          leadId: id,
+          status: "ASSUMIDO_HUMANO",
+          aiEnabled: false,
+          humanOwnerId: sessionUser.id,
+          lastOutboundAt: new Date(),
+        },
+        update: { lastOutboundAt: new Date() },
+      });
+      await prisma.conversationMessage.create({
+        data: {
+          conversationId: conv.id,
+          direction: "SAIDA",
+          body: body.message,
+          viaAi: false,
+        },
+      });
+    } catch (e) {
+      // Não derruba o envio manual por causa do registro — a mensagem já foi
+      // logada e o lead atualizado acima.
+      console.error("[leads] falha ao registrar conversa:", e instanceof Error ? e.message : e);
+    }
+  }
+
   const actor = await getCurrentUser();
   await writeAudit({
     actorId: actor?.id ?? null,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CONVERSATION_STATUSES,
   CONVERSATION_STATUS_COLOR,
@@ -102,6 +102,15 @@ type Settings = {
   windowStartHour: number;
   windowEndHour: number;
   sendOnWeekends: boolean;
+};
+
+type TarefaLote = {
+  id: string;
+  status: "PENDENTE" | "ENVIADO" | "FALHOU" | "CANCELADO";
+  attempts: number;
+  erro: string | null;
+  sentAt: string | null;
+  lead: { id: string; name: string; city: string; state: string; whatsapp: string | null };
 };
 
 type Batch = {
@@ -753,6 +762,11 @@ function Agendar({
   const [etapa, setEtapa] = useState("");
   const [tipo, setTipo] = useState("");
   const [leads, setLeads] = useState<Elegivel[]>([]);
+  const [mostrarContatadas, setMostrarContatadas] = useState(false);
+  const [loteAberto, setLoteAberto] = useState<string | null>(null);
+  const [tarefas, setTarefas] = useState<TarefaLote[]>([]);
+  const [ocultas, setOcultas] = useState(0);
+  const [porMotivo, setPorMotivo] = useState<Record<string, number>>({});
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [quando, setQuando] = useState("");
   const [nota, setNota] = useState("");
@@ -787,17 +801,20 @@ function Agendar({
       if (q.trim()) p.set("q", q.trim());
       if (etapa) p.set("funnel_stage", etapa);
       if (tipo) p.set("store_type", tipo);
+      if (mostrarContatadas) p.set("incluir_contatadas", "1");
       const res = await fetch(`/api/outreach/elegiveis?${p.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "Falha na busca.");
       setLeads(json.items as Elegivel[]);
+      setOcultas(json.ocultas ?? 0);
+      setPorMotivo(json.porMotivo ?? {});
       setSel(new Set());
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha na busca.");
     } finally {
       setBuscando(false);
     }
-  }, [state, city, q, etapa, tipo]);
+  }, [state, city, q, etapa, tipo, mostrarContatadas]);
 
   // Carrega já na abertura: a tela abre mostrando as lojas que você tem.
   useEffect(() => {
@@ -809,6 +826,22 @@ function Agendar({
   }, []);
 
   const disponiveis = useMemo(() => leads.filter((l) => !l.bloqueio), [leads]);
+
+  async function abrirLote(b: Batch) {
+    if (loteAberto === b.id) {
+      setLoteAberto(null);
+      return;
+    }
+    setLoteAberto(b.id);
+    setTarefas([]);
+    try {
+      const res = await fetch(`/api/outreach/schedule/${b.id}`);
+      const j = await res.json();
+      if (res.ok) setTarefas(j.items as TarefaLote[]);
+    } catch {
+      /* silencioso */
+    }
+  }
 
   async function cancelarLote(b: Batch) {
     const pendentes = b.counts.PENDENTE;
@@ -956,6 +989,33 @@ function Agendar({
           </select>
         </div>
 
+        {ocultas > 0 && !mostrarContatadas && (
+          <div className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+            <strong>{ocultas} loja(s) fora desta lista</strong> por já terem sido trabalhadas:{" "}
+            {Object.entries(porMotivo)
+              .map(([m, n]) => `${n} ${m}`)
+              .join(" · ")}
+            . Acompanhe em <strong>Conversas</strong> e no <strong>Funil</strong>.{" "}
+            <button
+              onClick={() => setMostrarContatadas(true)}
+              className="font-medium text-indigo-600 hover:underline"
+            >
+              Mostrar mesmo assim
+            </button>
+          </div>
+        )}
+        {mostrarContatadas && (
+          <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Mostrando também as lojas já trabalhadas (aparecem travadas).{" "}
+            <button
+              onClick={() => setMostrarContatadas(false)}
+              className="font-medium text-amber-900 underline"
+            >
+              Voltar a esconder
+            </button>
+          </div>
+        )}
+
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button
             onClick={() => void buscarLeads()}
@@ -986,8 +1046,10 @@ function Agendar({
 
         {!buscando && leads.length === 0 && (
           <div className="mt-3 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center text-sm text-zinc-500">
-            Nenhuma loja encontrada com esses filtros. Capte lojas em{" "}
-            <strong>Leads → Buscar lojas</strong>.
+            Nenhuma loja <strong>disponível</strong> com esses filtros.
+            {ocultas > 0
+              ? " Todas as encontradas já foram trabalhadas — veja em Conversas."
+              : " Capte novas lojas em Leads → Buscar lojas."}
           </div>
         )}
 
@@ -1101,8 +1163,16 @@ function Agendar({
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {batches.map((b) => (
-                  <tr key={b.id}>
-                    <td className="px-4 py-3 text-zinc-800">{fmt(b.scheduledFor)}</td>
+                  <Fragment key={b.id}>
+                  <tr
+                    onClick={() => void abrirLote(b)}
+                    className="cursor-pointer hover:bg-indigo-50/40"
+                    title="Ver o que aconteceu com cada loja"
+                  >
+                    <td className="px-4 py-3 text-zinc-800">
+                      <span className="mr-1 text-zinc-400">{loteAberto === b.id ? "▾" : "▸"}</span>
+                      {fmt(b.scheduledFor)}
+                    </td>
                     <td className="px-4 py-3 text-zinc-600">{b.note ?? <span className="text-zinc-400">—</span>}</td>
                     <td className="px-4 py-3 text-xs text-zinc-600">
                       {b.counts.ENVIADO}/{b.total} enviados
@@ -1113,7 +1183,10 @@ function Agendar({
                     <td className="px-4 py-3 text-right">
                       {b.counts.PENDENTE > 0 ? (
                         <button
-                          onClick={() => void cancelarLote(b)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void cancelarLote(b);
+                          }}
                           title={`Cancelar os ${b.counts.PENDENTE} contatos que ainda não saíram`}
                           className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                         >
@@ -1124,6 +1197,49 @@ function Agendar({
                       )}
                     </td>
                   </tr>
+                  {loteAberto === b.id && (
+                    <tr>
+                      <td colSpan={4} className="bg-zinc-50 px-4 py-3">
+                        {tarefas.length === 0 ? (
+                          <div className="text-xs text-zinc-500">Carregando lojas do lote...</div>
+                        ) : (
+                          <ul className="space-y-1">
+                            {tarefas.map((t) => (
+                              <li key={t.id} className="flex flex-wrap items-center gap-2 text-xs">
+                                <span
+                                  className={`inline-block w-20 shrink-0 rounded px-1.5 py-0.5 text-center font-medium ${
+                                    t.status === "ENVIADO"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : t.status === "FALHOU"
+                                        ? "bg-red-100 text-red-800"
+                                        : t.status === "CANCELADO"
+                                          ? "bg-zinc-200 text-zinc-700"
+                                          : "bg-blue-100 text-blue-800"
+                                  }`}
+                                >
+                                  {t.status === "PENDENTE" ? "na fila" : t.status.toLowerCase()}
+                                </span>
+                                <span className="font-medium text-zinc-800">{t.lead.name}</span>
+                                <span className="text-zinc-500">
+                                  {t.lead.city}/{t.lead.state}
+                                </span>
+                                {t.erro && (
+                                  <span className="text-red-700">
+                                    — {t.erro}
+                                    {t.attempts > 1 && ` (${t.attempts} tentativas)`}
+                                  </span>
+                                )}
+                                {t.status === "ENVIADO" && t.sentAt && (
+                                  <span className="text-zinc-400">— {fmt(t.sentAt)}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

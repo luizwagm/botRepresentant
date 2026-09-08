@@ -24,6 +24,9 @@ export async function GET(req: NextRequest) {
   const funnelStage = sp.get("funnel_stage");
   const q = sp.get("q");
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(sp.get("limit") ?? "100", 10) || 100));
+  // Por padrão a lista mostra SÓ quem pode ser agendado. Quem já foi abordada
+  // sai daqui e passa a ser acompanhada em Conversas / Funil.
+  const incluirContatadas = sp.get("incluir_contatadas") === "1";
 
   const where: Prisma.LeadWhereInput = {
     optOut: false,
@@ -106,9 +109,21 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const disponiveis = items.filter((i) => !i.bloqueio);
+  const contatadas = items.filter((i) => i.bloqueio);
+
+  // Quebra por motivo — o usuário precisa saber PARA ONDE as lojas sumiram.
+  const porMotivo: Record<string, number> = {};
+  for (const i of contatadas) {
+    const k = i.bloqueio ?? "?";
+    porMotivo[k] = (porMotivo[k] ?? 0) + 1;
+  }
+
   return NextResponse.json({
-    items,
+    items: incluirContatadas ? items : disponiveis,
     total: items.length,
-    disponiveis: items.filter((i) => !i.bloqueio).length,
+    disponiveis: disponiveis.length,
+    ocultas: contatadas.length,
+    porMotivo,
   });
 }

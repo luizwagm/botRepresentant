@@ -426,7 +426,16 @@ async function runFollowUp(
     where: { id: conversationId },
     include: { lead: true },
   });
-  if (!conv || !conv.aiEnabled || !ACTIVE_STATUSES.includes(conv.status)) return "pulado";
+  if (!conv || !conv.aiEnabled || !ACTIVE_STATUSES.includes(conv.status)) {
+    // Estado inesperado (mudou entre a consulta e a leitura): tira da fila em
+    // vez de deixar vencida bloqueando os contatos novos.
+    if (conv) {
+      await prisma.conversation
+        .update({ where: { id: conv.id }, data: { nextActionAt: null } })
+        .catch(() => {});
+    }
+    return "pulado";
+  }
 
   // Esgotou a cadência: vira "Sem resposta".
   if (conv.followUpStage >= FOLLOW_UP_GAPS_HOURS.length) {
@@ -503,7 +512,16 @@ async function runFollowUp(
     agora.followUpStage !== stage ||
     agora.lastInboundAt?.getTime() !== conv.lastInboundAt?.getTime()
   ) {
-    return "pulado"; // outro caminho mexeu na conversa: abandona este follow-up
+    // Outro caminho mexeu na conversa: abandona ESTE follow-up. Empurra o
+    // relógio pra frente — sem isso ela continuaria "vencida" e seria
+    // reescolhida a cada ciclo, bloqueando a fila inteira.
+    await prisma.conversation
+      .updateMany({
+        where: { id: conv.id, nextActionAt: { lte: new Date() } },
+        data: { nextActionAt: new Date(Date.now() + 15 * 60 * 1000) },
+      })
+      .catch(() => {});
+    return "pulado";
   }
 
   let externalId: string | null = null;
@@ -767,9 +785,15 @@ export async function tick(channel: Channel): Promise<TickResult> {
   });
   if (dueFollowUp) {
     const r = await runFollowUp(dueFollowUp.id, settings, channel, catalog);
-    if (r === "enviado") result.followUps++;
+    if (r === "enviado") {
+      result.followUps++;
+      return result; // gastou o envio deste ciclo
+    }
     if (r === "encerrado") result.encerrados++;
-    return result;
+    // "pulado"/"encerrado" NÃO gastaram envio. Antes o tick retornava aqui, e
+    // um follow-up que nunca envia (número inválido, conversa em estado
+    // inesperado) segurava a fila pra sempre — os contatos novos agendados
+    // ficavam parados sem NENHUMA mensagem sair. Agora seguimos em frente.
   }
 
   const dueTask = await prisma.outreachTask.findFirst({
