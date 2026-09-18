@@ -76,7 +76,7 @@ export default function Cabecalho({
           </Link>
 
           {/* Navegação de desktop */}
-          <nav aria-label="Principal" className="ml-6 hidden items-center gap-1 lg:flex xl:ml-10">
+          <nav aria-label="Principal" className="ml-4 hidden items-center gap-0.5 lg:flex xl:ml-10 xl:gap-1">
             {LINKS.slice(0, 2).map((l) => (
               <LinkTopo key={l.href} href={l.href} ativo={ativo(l.href)}>
                 {l.rotulo}
@@ -98,7 +98,7 @@ export default function Cabecalho({
                   aria-expanded={megaAberto}
                   aria-controls="rota-mega"
                   onClick={() => setMegaAberto((v) => !v)}
-                  className={`rounded-full px-4 py-2 text-[0.93rem] transition-colors ${
+                  className={`whitespace-nowrap rounded-full px-3 py-2 text-[0.93rem] transition-colors xl:px-4 ${
                     megaAberto || pathname.startsWith("/loja/") ? "text-creme" : "text-creme-2 hover:text-creme"
                   }`}
                 >
@@ -176,7 +176,7 @@ export default function Cabecalho({
                 placeholder="Buscar peças"
                 maxLength={80}
                 autoComplete="off"
-                className="h-10 w-44 rounded-full border border-white/10 bg-white/[0.03] pl-10 pr-4 text-sm text-creme placeholder:text-nevoa transition-[width,border-color] duration-300 focus:w-60 focus:border-cobre/60 focus:outline-none xl:w-52"
+                className="h-10 w-40 rounded-full border border-white/10 bg-white/[0.03] pl-10 pr-4 text-sm text-creme placeholder:text-nevoa transition-[width,border-color] duration-300 focus:w-52 focus:border-cobre/60 focus:outline-none lg:w-40 xl:w-52 xl:focus:w-60"
               />
             </form>
 
@@ -301,12 +301,12 @@ function LinkTopo({ href, ativo, children }: { href: string; ativo: boolean; chi
     <Link
       href={href}
       aria-current={ativo ? "page" : undefined}
-      className={`relative rounded-full px-4 py-2 text-[0.93rem] transition-colors ${
+      className={`relative whitespace-nowrap rounded-full px-3 py-2 text-[0.93rem] transition-colors xl:px-4 ${
         ativo ? "text-creme" : "text-creme-2 hover:text-creme"
       }`}
     >
       {children}
-      {ativo && <span aria-hidden className="absolute inset-x-4 -bottom-0.5 h-px bg-cobre" />}
+      {ativo && <span aria-hidden className="absolute inset-x-3 -bottom-0.5 h-px bg-cobre xl:inset-x-4" />}
     </Link>
   );
 }
