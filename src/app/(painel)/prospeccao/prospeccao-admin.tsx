@@ -762,7 +762,7 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
                     setLigando(false);
                   }}
                   disabled={ligando}
-                  className="rounded-md bg-emerald-600 px-3 py-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 sm:py-1"
+                  className="w-full rounded-md bg-emerald-600 px-3 py-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 sm:w-auto sm:py-1"
                 >
                   {ligando ? "Ligando..." : "Ligar agora"}
                 </button>

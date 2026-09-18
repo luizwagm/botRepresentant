@@ -56,9 +56,11 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
+// Sem colorScheme global: o painel é claro (controles nativos claros) e a loja
+// declara o próprio esquema escuro no CSS (body:has(.rota-loja)). O "dark light"
+// antigo deixava os campos do painel escuros em celular com tema escuro.
 export const viewport: Viewport = {
   themeColor: SITE.corTema,
-  colorScheme: "dark light",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

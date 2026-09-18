@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -50,8 +51,13 @@ export default function Kanban() {
     };
   }, []);
 
+  // Mouse: arrasta depois de 6px de movimento (clique curto abre o lead).
+  // Toque: arrasta ao SEGURAR o card ~250ms — deslizar o dedo continua rolando
+  // o quadro. Um sensor só de "pointer" transformava todo arrasto do dedo em
+  // rolagem e cancelava o drag no celular.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
   );
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -195,13 +201,14 @@ function Card({
       {...listeners}
       {...attributes}
       onClick={(e) => {
-        // Evita confundir click com drag (PointerSensor ja exige 6px de movimento)
+        // Evita confundir click com drag (o mouse exige 6px de movimento; o toque, segurar)
         if (!transform || (transform.x === 0 && transform.y === 0)) {
           e.stopPropagation();
           onClick();
         }
       }}
-      className={`cursor-grab active:cursor-grabbing rounded-md bg-white border border-zinc-200 p-3 shadow-sm hover:shadow-md transition ${isDragging ? "opacity-50" : ""}`}
+      // select-none + sem callout: segurar o card no celular não abre menu nem seleciona texto.
+      className={`cursor-grab select-none [-webkit-touch-callout:none] active:cursor-grabbing rounded-md bg-white border border-zinc-200 p-3 shadow-sm hover:shadow-md transition ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="font-medium text-sm text-zinc-900 leading-snug line-clamp-2">{lead.name}</div>
       <div className="mt-1 text-xs text-zinc-500">{lead.city}/{lead.state}</div>

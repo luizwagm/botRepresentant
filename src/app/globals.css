@@ -45,6 +45,18 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+/* O iPhone dá zoom sozinho ao focar campo com fonte < 16px (e a página parece
+   "quebrar" depois). Em tela de toque, campo nunca menor que 16px — no mouse,
+   cada tela mantém o tamanho que escolheu. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea,
+  [contenteditable="true"] {
+    font-size: max(16px, 1em);
+  }
+}
+
 /* A loja é escura de ponta a ponta: pinta o body também, senão o "puxar" da
    página (overscroll) mostra branco atrás do asfalto. */
 body:has(.rota-loja) {
