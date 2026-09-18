@@ -24,8 +24,9 @@ export const env = {
   googlePlacesApiKey: required("GOOGLE_PLACES_API_KEY"),
   claudeModel: optional("CLAUDE_MODEL", "claude-opus-5"),
   luizWhatsapp: optional("LUIZ_WHATSAPP", ""),
-  brandName: optional("BRAND_NAME", "Jeans Direto do Agreste"),
-  // URL base publica (pra preview de link/og:image). Em producao: https://atacado.luizaugust.me
+  brandName: optional("BRAND_NAME", "ROTA Atacado"),
+  // URL base publica (canonical, sitemap, og:image e links que a IA manda).
+  // Em producao: o dominio da loja, ex. https://rotaatacado.com.br
   publicBaseUrl: optional("PUBLIC_BASE_URL", "http://localhost:3030"),
   authSecret: required("AUTH_SECRET"),
   adminEmail: required("ADMIN_EMAIL"),

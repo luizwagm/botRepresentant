@@ -1,5 +1,5 @@
 # ==========================================================================
-#  Entrega automática — L. Augusto Atacado (jeans_hunter)
+#  Entrega automática — ROTA Atacado (jeans_hunter)
 #
 #  Dois trabalhos em sequência: PROVAR e ENTREGAR. O segundo só existe se o
 #  primeiro passar (`needs`).
@@ -8,8 +8,8 @@
 #  sistema em produção — as três passaram por `tsc` e `lint` sem reclamar:
 #
 #   1. Função exportada de um módulo "use client" chamada por um Server
-#      Component: 500 em /catalogo/publico/[id]. Só aparece ao RENDERIZAR a
-#      rota — por isso o smoke test abaixo abre a página de um produto real.
+#      Component: 500 na página de produto (hoje /produto/[id]). Só aparece ao
+#      RENDERIZAR a rota — por isso o smoke test abaixo abre um produto real.
 #   2. Migration que o banco de produção não tinha: 500 em toda query.
 #      Por isso as migrations rodam contra um Postgres de verdade aqui.
 #   3. Deploy rodado como root: o `pm2 restart` não achou o processo, que vive
@@ -170,12 +170,48 @@ jobs:
           }
 
           checar "/login" 200
-          checar "/catalogo/publico" 200
-          checar "/catalogo/publico/$PRODUTO_ID" 200   # a rota do incidente
-          checar "/sobre" 200                          # sem linha no banco: prova o fallback
-          checar "/catalogo/publico/nao-existe-mesmo" 404
+          # Loja pública
+          checar "/" 200
+          checar "/loja" 200
+          checar "/loja?q=fumaca&ordem=menor-preco&pronta=1" 200
+          checar "/loja/jeans" 200
+          checar "/loja/categoria-que-nao-existe" 404
+          checar "/produto/$PRODUTO_ID" 200             # a rota do incidente
+          checar "/produto/nao-existe-mesmo" 404
+          checar "/carrinho" 200
+          checar "/sobre" 200                           # sem linha no banco: prova o fallback
+          checar "/politica-de-privacidade" 200
+          checar "/termos" 200
+          checar "/sitemap.xml" 200
+          checar "/robots.txt" 200
+          checar "/manifest.webmanifest" 200
+          checar "/rota/og.jpg" 200
+          checar "/api/loja/conferir?ids=$PRODUTO_ID" 200
+          # Links antigos que a IA já mandou pra clientes: redirecionamento permanente.
+          checar "/catalogo/publico" 308
+          checar "/catalogo/publico/$PRODUTO_ID" 308
           # Rota protegida sem sessão tem que mandar pro login, não abrir.
           checar "/leads" 307
+          checar "/painel" 307
+          checar "/pedidos" 307
+
+          # O pedido do carrinho é gravado de verdade (preço vem do banco).
+          pedido=$(curl -s -o /tmp/pedido.json -w "%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"itens\":[{\"produtoId\":\"$PRODUTO_ID\",\"cor\":{\"nome\":\"Azul\"},\"grade\":{\"38\":5,\"40\":5}}],\"lojista\":{\"loja\":\"Loja CI\",\"contato\":\"Teste\",\"whatsapp\":\"81999990000\"}}" \
+            "http://127.0.0.1:3030/api/loja/pedido")
+          if [ "$pedido" = "200" ] && grep -q '"codigo":"RT-' /tmp/pedido.json; then
+            echo "ok POST /api/loja/pedido ($pedido)"
+          else
+            echo "FALHOU POST /api/loja/pedido — veio $pedido: $(cat /tmp/pedido.json)"
+            falhou=1
+          fi
+          # Abaixo do mínimo (10 por modelo) tem que ser recusado.
+          minimo=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"itens\":[{\"produtoId\":\"$PRODUTO_ID\",\"cor\":{\"nome\":\"Azul\"},\"grade\":{\"38\":2}}],\"lojista\":{\"loja\":\"Loja CI\",\"contato\":\"Teste\",\"whatsapp\":\"81999990000\"}}" \
+            "http://127.0.0.1:3030/api/loja/pedido")
+          if [ "$minimo" = "422" ]; then echo "ok pedido abaixo do mínimo recusado (422)"; else echo "FALHOU mínimo — veio $minimo"; falhou=1; fi
 
           kill "$PID" 2>/dev/null || true
           exit $falhou

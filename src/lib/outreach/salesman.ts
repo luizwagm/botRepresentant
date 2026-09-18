@@ -9,6 +9,7 @@
 //     em campos tipados em vez de serem adivinhados do texto.
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "../env";
+import { ROTAS } from "../site";
 import type { AiSettings } from "./settings";
 
 const client = new Anthropic({ apiKey: env.anthropicApiKey });
@@ -136,12 +137,12 @@ function transcriptBlock(turns: TranscriptTurn[]): string {
 
 function resolveLink(raw: RawDecision, catalog: CatalogItem[]): string | null {
   const base = env.publicBaseUrl.replace(/\/+$/, "");
-  if (raw.link === "vitrine") return `${base}/catalogo/publico`;
+  if (raw.link === "vitrine") return `${base}${ROTAS.loja}`;
   if (raw.link === "produto") {
     // Só aceita id que existe de fato — id inventado vira link da vitrine.
     const found = catalog.find((p) => p.id === raw.produtoId.trim());
-    if (found) return `${base}/catalogo/publico/${found.id}`;
-    return catalog.length > 0 ? `${base}/catalogo/publico` : null;
+    if (found) return `${base}${ROTAS.produto(found.id)}`;
+    return catalog.length > 0 ? `${base}${ROTAS.loja}` : null;
   }
   return null;
 }

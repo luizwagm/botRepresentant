@@ -19,6 +19,15 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // A IA vendedora e o painel já mandaram links do catálogo antigo para
+  // clientes. Eles NÃO podem quebrar: redirecionamento permanente (308) pro
+  // endereço novo — o Google também transfere a relevância.
+  async redirects() {
+    return [
+      { source: "/catalogo/publico", destination: "/loja", permanent: true },
+      { source: "/catalogo/publico/:id", destination: "/produto/:id", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

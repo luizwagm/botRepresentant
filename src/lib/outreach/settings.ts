@@ -1,34 +1,12 @@
 // Configuracao do vendedor de IA e das travas de envio (singleton "ai").
 import { prisma } from "../db";
 import { env } from "../env";
+// Tom e roteiro padrão moram num módulo neutro (o painel importa no navegador).
+import { DEFAULT_SCRIPT, DEFAULT_TONE, ehTextoAntigo } from "./textos-padrao";
+
+export { DEFAULT_SCRIPT, DEFAULT_TONE };
 
 export const AI_SETTINGS_ID = "ai";
-
-/**
- * Tom e roteiro PADRAO — ponto de partida editavel no painel. Nao sao mensagens
- * prontas: descrevem COMO o vendedor fala e o que a conversa precisa cobrir; a
- * IA escreve cada mensagem do zero, olhando o historico.
- */
-export const DEFAULT_TONE = `Você é um representante comercial da L. Augusto Atacado — fábrica de jeans em Riacho das Almas, no Agreste pernambucano.
-
-Como você fala:
-- Primeira pessoa do plural ("nós", "trabalhamos", "temos"). Você faz parte da fábrica.
-- Profissional e caloroso, como gente do Nordeste que trabalha com lojista há anos. Nunca robótico, nunca publicitário.
-- Português brasileiro coloquial e correto. Nada de gíria forçada, nada de formalidade de escritório.
-- Mensagem de WhatsApp de verdade: curta, parágrafos de 1–2 linhas. Máximo 60 palavras por mensagem.
-- No máximo 1 emoji, e só quando cair bem. Frequentemente nenhum.
-- Nunca usa "Bom dia/Boa tarde" (a mensagem pode chegar em qualquer horário).`;
-
-export const DEFAULT_SCRIPT = `Ideia de roteiro (NÃO é script fixo — adapte ao que a loja responder):
-
-1. Primeiro contato: chame a loja pelo nome, diga em uma linha que somos fábrica de jeans do Agreste e vendemos direto pro lojista, e faça UMA pergunta leve que abra conversa (se ela trabalha com jeans, se quer ver o catálogo).
-2. Se responder com interesse: entenda o que ela vende e o público dela antes de empurrar produto. Mande o catálogo quando fizer sentido.
-3. Se perguntar de um tipo de peça específico: mande o link daquele produto, não o catálogo inteiro.
-4. Se perguntar preço: dê a faixa do produto e lembre que é preço de fábrica, sem atravessador. Pedido mínimo a partir de 10 peças por modelo.
-5. Se pedir para não receber mais mensagem: encerre com educação e agradeça. Não insista.
-6. Quando falar em fechar pedido, quantidade, grade, frete ou pagamento: PARE e passe pro humano. Não negocie valor, não prometa prazo, não feche venda.
-
-Nunca invente: frete grátis, exclusividade, prazo de entrega, desconto que não foi informado, ou produto que não está no catálogo.`;
 
 export type AiSettings = {
   enabled: boolean;
@@ -62,8 +40,10 @@ export async function getAiSettings(): Promise<AiSettings> {
   if (!row) return DEFAULT_SETTINGS;
   return {
     enabled: row.enabled,
-    tone: row.tone,
-    scriptGuidance: row.scriptGuidance,
+    // Texto salvo antes do rebrand (qualquer "salvar" antigo gravava o padrão da
+    // época): a IA usa o padrão ROTA até alguém revisar e salvar de novo.
+    tone: ehTextoAntigo(row.tone) ? DEFAULT_TONE : row.tone,
+    scriptGuidance: ehTextoAntigo(row.scriptGuidance) ? DEFAULT_SCRIPT : row.scriptGuidance,
     dailyCap: row.dailyCap,
     minGapSeconds: row.minGapSeconds,
     maxGapSeconds: row.maxGapSeconds,
@@ -71,6 +51,18 @@ export async function getAiSettings(): Promise<AiSettings> {
     windowEndHour: row.windowEndHour,
     sendOnWeekends: row.sendOnWeekends,
   };
+}
+
+/**
+ * O que está GRAVADO ainda é texto da marca antiga? (getAiSettings já devolve o
+ * padrão ROTA no lugar; isto é só pro painel avisar e pedir um "Salvar".)
+ */
+export async function textosAntigosSalvos(): Promise<{ tom: boolean; roteiro: boolean }> {
+  const row = await prisma.aiSettings.findUnique({
+    where: { id: AI_SETTINGS_ID },
+    select: { tone: true, scriptGuidance: true },
+  });
+  return { tom: !!row && ehTextoAntigo(row.tone), roteiro: !!row && ehTextoAntigo(row.scriptGuidance) };
 }
 
 /** Teto de tamanho do prompt editável — evita inflar o custo de cada mensagem. */
@@ -100,7 +92,7 @@ export async function saveAiSettings(patch: Partial<AiSettings>): Promise<AiSett
  * O endereço público está configurado de verdade?
  *
  * Em produção, PUBLIC_BASE_URL não definida cai no padrão localhost — e a IA
- * mandaria "http://localhost:3030/catalogo/publico" pro lojista, um link que
+ * mandaria "http://localhost:3030/loja" pro lojista, um link que
  * não abre pra ninguém. É melhor NÃO enviar do que enviar link quebrado.
  */
 export function publicBaseUrlOk(): boolean {

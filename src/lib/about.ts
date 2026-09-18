@@ -22,35 +22,35 @@ export type AboutContent = {
  * afirmacoes aqui sao pontos de partida honestos, nao dados verificados.
  */
 export const DEFAULT_ABOUT: AboutContent = {
-  heroTitle: "Jeans de verdade, direto da fábrica do Agreste",
+  heroTitle: "A rota entre as fábricas do Agreste e a sua loja",
   heroSubtitle:
-    "Fabricamos e vendemos no atacado para lojistas de todo o Brasil — sem atravessador entre a nossa costura e o seu balcão.",
+    "A ROTA reúne peças das fábricas do Polo de Confecções de Pernambuco numa vitrine só — pra você montar o pedido com a grade da sua loja e fechar no WhatsApp.",
   storyHtml:
-    "<p>A <strong>L. Augusto Atacado</strong> nasceu no coração do Agreste Pernambucano, em Riacho das Almas — uma das maiores regiões produtoras de jeans do país. Aqui, costurar faz parte da rotina de gerações, e é essa experiência que a gente coloca em cada peça.</p>" +
-    "<p>Somos <strong>fábrica</strong>, não revenda. Cuidamos da produção do início ao fim — da modelagem à lavanderia — e é isso que garante caimento, resistência e um preço que só quem produz consegue oferecer. Quando você compra da gente, compra direto de quem faz.</p>" +
-    "<p>Trabalhamos lado a lado com o lojista: ajustamos a grade, tiramos dúvida pelo WhatsApp e enviamos para todo o Brasil, com pronta-entrega no que está no catálogo. Nosso objetivo é simples — que a sua loja venda mais com um jeans que o cliente veste, gosta e volta pra comprar de novo.</p>",
+    "<p>O <strong>Polo de Confecções do Agreste</strong> — Toritama, Santa Cruz do Capibaribe, Caruaru e cidades vizinhas como Riacho das Almas — é um dos maiores produtores de moda do país. Só que comprar aqui de longe sempre deu trabalho: muita fábrica, muito contato, pouca informação organizada.</p>" +
+    "<p>A <strong>ROTA Atacado</strong> nasceu pra encurtar esse caminho. A gente seleciona peças das fábricas da região, organiza tudo numa vitrine com preço de atacado, cores, tamanhos e pedido mínimo, e atende você do primeiro contato até a mercadoria sair.</p>" +
+    "<p>Você compra de várias fábricas e fala com uma equipe só. Monta a grade do jeito da sua loja, envia o pedido pelo WhatsApp e combina frete e pagamento com quem conhece a peça. <strong>Moda que conecta negócios</strong> — é isso que a gente faz.</p>",
   highlights: [
     {
-      title: "Fábrica própria",
-      description: "Produção verticalizada no Agreste/PE — da modelagem à lavanderia, tudo sob o nosso controle.",
+      title: "Direto do polo",
+      description: "Peças das fábricas do Agreste pernambucano, sem intermediário entre a produção e a sua loja.",
     },
     {
-      title: "Preço de fábrica",
-      description: "Sem atravessador no caminho: você compra direto de quem costura.",
+      title: "Várias fábricas, um atendimento",
+      description: "Jeans, moda feminina, masculina e infantil num pedido só, com uma equipe acompanhando tudo.",
     },
     {
-      title: "Pronta-entrega",
-      description: "O que está no catálogo sai rápido, com envio para todo o Brasil.",
+      title: "A grade é sua",
+      description: "Você escolhe tamanho por tamanho e cor por cor, respeitando só o mínimo de cada modelo.",
     },
     {
-      title: "Atendimento direto",
-      description: "Fale com a gente pelo WhatsApp e ajuste a grade do jeito da sua loja.",
+      title: "Conversa de verdade",
+      description: "Disponibilidade, frete e pagamento combinados no WhatsApp, com quem conhece a peça.",
     },
   ],
   stats: [
-    { value: "Agreste/PE", label: "Fabricado no maior polo de jeans do Nordeste" },
-    { value: "Atacado", label: "Preço direto de fábrica para lojistas" },
-    { value: "Brasil", label: "Enviamos para todas as regiões" },
+    { value: "Agreste/PE", label: "Peças do maior polo de confecções do Nordeste" },
+    { value: "Atacado", label: "Preço de atacado para lojistas e revendedores" },
+    { value: "Brasil", label: "Atendimento a lojas de todas as regiões" },
   ],
   imageUrl: null,
 };

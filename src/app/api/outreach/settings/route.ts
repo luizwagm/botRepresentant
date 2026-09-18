@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { writeAudit, getIp } from "@/lib/audit";
-import { getAiSettings, saveAiSettings, type AiSettings } from "@/lib/outreach/settings";
+import { getAiSettings, saveAiSettings, textosAntigosSalvos, type AiSettings } from "@/lib/outreach/settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  return NextResponse.json(await getAiSettings());
+  const [settings, textoAntigo] = await Promise.all([getAiSettings(), textosAntigosSalvos()]);
+  return NextResponse.json({ ...settings, textoAntigo });
 }
 
 export async function PUT(req: NextRequest) {

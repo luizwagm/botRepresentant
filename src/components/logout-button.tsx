@@ -15,7 +15,7 @@ export default function LogoutButton({ email }: { email: string }) {
     <button
       onClick={logout}
       title={`Logado como ${email}`}
-      className="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+      className="shrink-0 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-creme-2 hover:bg-white/5 hover:text-creme"
     >
       Sair
     </button>

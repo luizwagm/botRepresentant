@@ -1,9 +1,10 @@
 // Semeia o minimo pro smoke test do CI e imprime o id do produto criado.
 // Roda contra o Postgres efemero do GitHub Actions — nunca contra producao.
 //
-// O objetivo e ter um produto ATIVO real pra exercitar /catalogo/publico/[id]:
-// foi exatamente essa rota que quebrou em producao (funcao de modulo "use client"
-// chamada no servidor) passando por tsc e lint sem reclamar.
+// O objetivo e ter um produto ATIVO real pra exercitar /produto/[id] (a pagina
+// de produto ja quebrou em producao por funcao de modulo "use client" chamada no
+// servidor, passando por tsc e lint sem reclamar), a vitrine /loja/jeans e o
+// POST do pedido.
 import { prisma } from "../src/lib/db";
 
 async function main(): Promise<void> {
@@ -15,7 +16,7 @@ async function main(): Promise<void> {
       videos: [],
       sizes: ["38", "40"],
       tags: ["ci"],
-      categories: [],
+      categories: ["jeans"],
       colors: [{ name: "Azul", hex: "#1B2A4A", image: null }],
       wholesalePriceMin: 49.9,
       wholesalePriceMax: 59.9,

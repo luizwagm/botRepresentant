@@ -4,15 +4,52 @@ import { jwtVerify } from "jose";
 const SECRET = new TextEncoder().encode(process.env.AUTH_SECRET ?? "");
 const COOKIE_NAME = "jh_session";
 
-// Rotas que NÃO exigem login
+// Rotas que NÃO exigem login.
+// Atenção: "/" aqui casa SÓ a raiz (matches() compara igualdade ou "p/"), então
+// liberar a home da loja não abre o painel.
 const PUBLIC_PREFIXES = [
-  "/login",
-  "/catalogo/publico",
+  // Loja
+  "/",
+  "/loja",
+  "/produto",
+  "/carrinho",
   "/sobre",
+  "/politica-de-privacidade",
+  "/termos",
+  "/catalogo/publico", // links antigos: o next.config redireciona pra /loja e /produto
+  // Arquivos públicos que passam pelo proxy
+  "/rota", // ativos da marca (public/rota)
+  "/uploads",
+  "/manifest.webmanifest",
+  "/robots.txt",
+  "/sitemap.xml",
+  // APIs públicas
+  "/api/loja", // pedido do carrinho
   "/api/auth/login",
   "/api/auth/logout",
-  "/uploads",
+  "/login",
 ];
+
+// Área do painel (login obrigatório). Tudo que for página e NÃO estiver aqui
+// nem em PUBLIC_PREFIXES segue pro Next — que responde com o 404 da loja em vez
+// de jogar o cliente na tela de login. As páginas do painel têm ainda uma
+// segunda trava no próprio layout (app/(painel)/layout.tsx).
+const PAINEL_PREFIXES = [
+  "/painel",
+  "/pedidos",
+  "/leads",
+  "/funil",
+  "/prospeccao",
+  "/catalogo",
+  "/fornecedores",
+  "/conteudo",
+  "/marca",
+  "/usuarios",
+  "/auditoria",
+];
+
+/** Cabeçalho com o caminho real, lido pela trava do layout do painel. */
+const CABECALHO_CAMINHO = "x-rota-caminho";
 
 // Rotas só pra ADMIN
 // /prospeccao e /api/outreach são de ADMIN: quem edita o tom/roteiro está
@@ -34,8 +71,19 @@ function matches(pathname: string, list: string[]): boolean {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Sempre SOBRESCREVE (nunca confia no que o cliente mandou com esse nome).
+  const cabecalhos = new Headers(req.headers);
+  cabecalhos.set(CABECALHO_CAMINHO, pathname);
+  const seguir = () => NextResponse.next({ request: { headers: cabecalhos } });
+
   if (matches(pathname, PUBLIC_PREFIXES)) {
-    return NextResponse.next();
+    return seguir();
+  }
+
+  // API é sempre "fechada por padrão"; página só se for do painel.
+  const protegido = pathname.startsWith("/api/") || matches(pathname, PAINEL_PREFIXES);
+  if (!protegido) {
+    return seguir();
   }
 
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -61,14 +109,16 @@ export async function proxy(req: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Acesso restrito a administradores." }, { status: 403 });
     }
-    return NextResponse.redirect(new URL("/", req.url));
+    // Sem permissão: volta pro início do PAINEL ("/" agora é a loja pública).
+    return NextResponse.redirect(new URL("/painel", req.url));
   }
 
-  return NextResponse.next();
+  return seguir();
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|logo-mark.svg|logo-horizontal.svg|logo-whatsapp.png|logo-whatsapp-500.png|next.svg|vercel.svg|file.svg|globe.svg|window.svg).*)",
+    // Arquivos estáticos (Next e a marca em public/rota) nem passam pelo proxy.
+    "/((?!_next/static|_next/image|favicon.ico|rota/|next.svg|vercel.svg|file.svg|globe.svg|window.svg).*)",
   ],
 };

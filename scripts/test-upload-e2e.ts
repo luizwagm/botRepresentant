@@ -85,9 +85,9 @@ async function main(): Promise<void> {
   if (!ok) throw new Error("persistência falhou: " + JSON.stringify({ images: fetched.images, videos: fetched.videos }));
   console.log("6. persistência OK (foto + vídeo salvos no produto)");
 
-  // 7. aparece na galeria publica
-  const html = await (await fetch(`${BASE}/catalogo/publico`)).text();
-  console.log("7. galeria pública:", html.includes("[TESTE E2E]") ? "OK (produto listado)" : "produto não apareceu (verificar)");
+  // 7. aparece na vitrine publica
+  const html = await (await fetch(`${BASE}/loja`)).text();
+  console.log("7. vitrine /loja:", html.includes("[TESTE E2E]") ? "OK (produto listado)" : "produto não apareceu (verificar)");
 
   // 8. limpeza: deleta produto + arquivos
   await fetch(`${BASE}/api/products/${product.id}`, { method: "DELETE", headers: { cookie } });

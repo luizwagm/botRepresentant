@@ -73,6 +73,7 @@ model Lead {
   messages        MessageLog[]
   conversation    Conversation?
   outreachTasks   OutreachTask[]
+  orders          OrderRequest[]
 
   @@index([city, state])
   @@index([state])
@@ -345,6 +346,46 @@ model BrandSettings {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@map("brand_settings")
+}
+
+enum OrderStatus {
+  NOVO           // chegou pelo carrinho da loja
+  EM_ATENDIMENTO // alguém está conversando com o lojista
+  FECHADO        // virou venda
+  CANCELADO
+}
+
+/// Pedido montado no carrinho da loja pública. O fechamento (pagamento, frete,
+/// nota) acontece no WhatsApp — aqui fica o REGISTRO, salvo antes de abrir o
+/// WhatsApp: se o lojista monta o pedido e desiste de enviar, a venda não some.
+model OrderRequest {
+  id          String      @id @default(cuid())
+  /// Código curto que o lojista cita na conversa ("RT-7K3QX").
+  code        String      @unique
+  status      OrderStatus @default(NOVO)
+  storeName   String      @map("store_name")
+  contactName String      @map("contact_name")
+  whatsapp    String?     /// do lojista, normalizado (E.164 sem +)
+  city        String?
+  state       String?     @db.Char(2)
+  cnpj        String?
+  notes       String?     @db.Text
+  /// [{productId, name, color, sizes: {"38": 10, ...}, pieces, priceMin, priceMax}]
+  /// Preços RECALCULADOS no servidor — nunca os que vieram do navegador.
+  items       Json
+  totalPieces Int         @map("total_pieces")
+  estimateMin Float?      @map("estimate_min")
+  estimateMax Float?      @map("estimate_max")
+  leadId      String?     @map("lead_id")
+  lead        Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  ip          String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([leadId])
+  @@map("order_requests")
 }
 
 enum Role {

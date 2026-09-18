@@ -1,84 +1,275 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ==========================================================================
+   ROTA Atacado — design system
+   Paleta tirada da arte da logo (amostrada, não "parecida"):
+     asfalto #070707 · creme #EFE7DD · cobre #C89775
+   Contraste medido (WCAG 2.2), sobre asfalto / sobre card (grafite):
+     creme 16,4 / 14,8 · creme-2 11,3 / 10,1 · névoa 5,7 / 5,2
+     cobre 7,8 / 7,0 · cobre-claro 11,3 / 10,2 · asfalto sobre botão cobre 7,8
+   → tudo passa AA em texto pequeno; o cobre é cor de TEXTO e de botão.
+   ========================================================================== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-unbounded);
+  --font-texto: var(--font-jost);
 
-  /* Marca L. Augusto Atacado */
-  --color-brand-indigo: #1B2A4A;
-  --color-brand-gold: #C8A55B;
-  --color-brand-cream: #F4EFE6;
-  --color-brand-graphite: #3C4456;
-  --font-display: var(--font-playfair);
-  --font-kicker: var(--font-jost);
+  /* Superfícies (do chão pra cima) */
+  --color-asfalto: #070707;
+  --color-carvao: #0f0e0d;
+  --color-grafite: #171614;
+  --color-pedra: #22201d;
+  --color-linha: #2e2b27;
+
+  /* Texto */
+  --color-creme: #efe7dd;
+  --color-creme-2: #c9c1b6;
+  --color-nevoa: #8f887e;
+
+  /* A estrada */
+  --color-cobre: #c89775;
+  --color-cobre-claro: #e2bb98;
+  --color-cobre-escuro: #9a6c4e;
+
+  /* Estado */
+  --color-sinal: #7ecb9a; /* sucesso: 10,5:1 sobre asfalto */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Conteudo rico (descricao de produto em HTML) — restaura formatacao que o
-   preflight do Tailwind zera. */
-.rich-text {
-  line-height: 1.65;
+/* A loja é escura de ponta a ponta: pinta o body também, senão o "puxar" da
+   página (overscroll) mostra branco atrás do asfalto. */
+body:has(.rota-loja) {
+  background: var(--color-asfalto);
+  color-scheme: dark;
 }
-.rich-text p {
-  margin: 0.5em 0;
+
+/* --------------------------------------------------------------------------
+   Loja
+   -------------------------------------------------------------------------- */
+.rota-loja {
+  font-family: var(--font-texto), system-ui, sans-serif;
+  background: var(--color-asfalto);
+  color: var(--color-creme);
 }
-.rich-text b,
-.rich-text strong {
-  font-weight: 700;
+
+.rota-loja ::selection {
+  background: var(--color-cobre);
+  color: var(--color-asfalto);
 }
-.rich-text em,
-.rich-text i {
-  font-style: italic;
+
+/* Foco visível e com a cor da marca (teclado e leitor de tela). */
+.rota-loja :focus-visible {
+  outline: 2px solid var(--color-cobre);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
-.rich-text u {
-  text-decoration: underline;
+
+/* O "chapéu" das seções — o mesmo espaçamento largo do "A T A C A D O" da logo. */
+.rota-kicker {
+  font-family: var(--font-texto), system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-cobre);
 }
-.rich-text ul {
-  list-style: disc;
-  margin: 0.5em 0;
-  padding-left: 1.25em;
+
+/* Filete da logo: "—— ATACADO ——". */
+.rota-filete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
 }
-.rich-text ol {
-  list-style: decimal;
-  margin: 0.5em 0;
-  padding-left: 1.25em;
+.rota-filete::before,
+.rota-filete::after {
+  content: "";
+  height: 1px;
+  width: 2.5rem;
+  background: currentColor;
+  opacity: 0.55;
 }
-.rich-text li {
-  margin: 0.2em 0;
+
+/* Textura do papel preto da arte original — ruído finíssimo, sem imagem. */
+.rota-grao {
+  position: relative;
+  isolation: isolate;
 }
-.rich-text h1,
-.rich-text h2,
-.rich-text h3,
-.rich-text h4 {
-  font-weight: 700;
-  margin: 0.7em 0 0.3em;
+.rota-grao::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.rich-text a {
-  color: #1b2a4a;
-  text-decoration: underline;
+
+/* Números tabulares em preço e quantidade: nada "dança" ao mudar o valor. */
+.rota-num {
+  font-variant-numeric: tabular-nums;
 }
-.rich-text blockquote {
-  border-left: 3px solid #c8a55b;
-  padding-left: 0.75em;
-  margin: 0.5em 0;
-  color: #3c4456;
+
+/* --------------------------------------------------------------------------
+   Movimento — só quando a pessoa aceita movimento
+   -------------------------------------------------------------------------- */
+@keyframes rota-surge {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: none; }
 }
+@keyframes rota-traca {
+  from { stroke-dashoffset: var(--rota-comp, 1600); }
+  to { stroke-dashoffset: 0; }
+}
+/* A estrada "pavimenta" da esquerda pra direita (clip-path, sem mexer no layout). */
+@keyframes rota-pavimenta {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rota-pavimento { animation: none !important; }
+}
+@keyframes rota-desliza {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Surge ao entrar na tela — scroll-driven, sem JavaScript. Onde o navegador
+     não suporta, o conteúdo só aparece normal (nada quebra). */
+  @supports (animation-timeline: view()) {
+    .rota-revela {
+      animation: rota-surge linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+  }
+
+  /* A estrada se desenha ao carregar. */
+  .rota-traco {
+    stroke-dasharray: var(--rota-comp, 1600);
+    animation: rota-traca 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Faixa infinita (cidades do polo). */
+  .rota-esteira {
+    animation: rota-desliza 38s linear infinite;
+  }
+  .rota-esteira:hover {
+    animation-play-state: paused;
+  }
+}
+
+/* Barra de progresso da página: a estrada avança conforme a rolagem. Escondida
+   por padrão — sem scroll-timeline (ou com movimento reduzido) ela ficaria uma
+   linha cheia e parada, que não informa nada. */
+.rota-progresso {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .rota-progresso {
+      visibility: visible;
+      transform-origin: 0 50%;
+      animation: rota-escala linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+@keyframes rota-escala {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Sem barra de rolagem visível nos carrosséis horizontais (rolar continua funcionando). */
+.rota-sem-barra {
+  scrollbar-width: none;
+}
+.rota-sem-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Conteúdo rico (descrição de produto, Sobre) — o preflight do Tailwind zera
+   a formatação; aqui ela volta. Funciona no painel (claro) e na loja (escuro).
+   -------------------------------------------------------------------------- */
+.rich-text { line-height: 1.7; }
+.rich-text p { margin: 0.6em 0; }
+.rich-text b, .rich-text strong { font-weight: 600; }
+.rich-text em, .rich-text i { font-style: italic; }
+.rich-text u { text-decoration: underline; }
+.rich-text ul { list-style: disc; margin: 0.6em 0; padding-left: 1.25em; }
+.rich-text ol { list-style: decimal; margin: 0.6em 0; padding-left: 1.25em; }
+.rich-text li { margin: 0.25em 0; }
+.rich-text h1, .rich-text h2, .rich-text h3, .rich-text h4 { font-weight: 600; margin: 0.9em 0 0.35em; }
+.rich-text a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.rich-text blockquote { border-left: 2px solid var(--color-cobre); padding-left: 0.85em; margin: 0.6em 0; opacity: 0.85; }
+.rota-loja .rich-text a { color: var(--color-cobre-claro); }
+.rota-loja .rich-text strong { color: var(--color-creme); }
+
+/* --------------------------------------------------------------------------
+   Topo da loja: transparente no alto da página e "asfaltado" (fundo + desfoque
+   + filete) assim que o conteúdo passa por baixo. Scroll-driven, zero JS; sem
+   suporte, já nasce no estado final — que é o legível.
+   -------------------------------------------------------------------------- */
+.rota-topo {
+  background: rgb(7 7 7 / 0.8);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+  border-bottom: 1px solid rgb(239 231 221 / 0.07);
+}
+@supports (animation-timeline: scroll()) {
+  .rota-topo {
+    animation: rota-topo linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 120px;
+  }
+}
+@keyframes rota-topo {
+  from {
+    background: rgb(7 7 7 / 0);
+    border-bottom-color: rgb(239 231 221 / 0);
+  }
+}
+
+/* Menu móvel em <dialog>: foco preso, Esc fecha e o fundo vira inerte — de graça. */
+.rota-gaveta::backdrop {
+  background: rgb(7 7 7 / 0.6);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rota-gaveta[open] {
+    animation: rota-gaveta 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+@keyframes rota-gaveta {
+  from { opacity: 0; transform: translateY(-12px); }
+}
+
+/* Entrada no carregamento (herói): sobe e aparece, em cascata via --atraso. */
+@media (prefers-reduced-motion: no-preference) {
+  .rota-entra {
+    animation: rota-surge 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--atraso, 0s);
+  }
+}
+
+/* Letra vazada (só o contorno) — usada na faixa das cidades. */
+.rota-vazado {
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(239 231 221 / 0.55);
+}
+
+/* Perguntas frequentes: o "+" vira "×" quando abre. */
+.rota-faq summary::-webkit-details-marker { display: none; }
+.rota-faq summary { list-style: none; }
+.rota-faq[open] .rota-faq-sinal { transform: rotate(45deg); }

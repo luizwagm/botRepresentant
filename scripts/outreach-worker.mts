@@ -192,7 +192,7 @@ async function connect(): Promise<void> {
   const s = makeWASocket({
     auth: state,
     logger: silentLogger,
-    browser: ["L. Augusto Atacado", "Chrome", "1.0.0"],
+    browser: ["ROTA Atacado", "Chrome", "1.0.0"],
     // Não sincroniza o histórico inteiro do aparelho — só o que chega agora.
     syncFullHistory: false,
   });

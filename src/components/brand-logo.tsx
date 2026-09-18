@@ -1,146 +1,61 @@
-"use client";
+// Logo da ROTA. Componente puro (sem "use client"): renderiza no servidor e não
+// manda JavaScript nenhum pro navegador — é só uma <img> bem dimensionada.
+import { DEFAULT_LOGO, DEFAULT_MARK, LOGO_TINTA, MARK_TINTA } from "@/lib/brand-defaults";
 
-import { useId } from "react";
+type Size = "sm" | "md" | "lg" | "xl" | "2xl";
 
-type Size = "sm" | "md" | "lg" | "xl";
-
-const MARK_SIZE: Record<Size, string> = {
-  sm: "h-8 w-8",
-  md: "h-11 w-11",
-  lg: "h-16 w-16",
-  xl: "h-24 w-24",
+/** Altura por tamanho. Logo (~2,8:1) e símbolo (~1,4:1): a altura manda, a largura acompanha. */
+const ALTURA: Record<Size, string> = {
+  sm: "h-8",
+  md: "h-10",
+  lg: "h-14",
+  xl: "h-24",
+  "2xl": "h-36 sm:h-44",
 };
 
-const WORD_SIZE: Record<Size, string> = {
-  sm: "text-lg",
-  md: "text-2xl",
-  lg: "text-3xl",
-  xl: "text-5xl",
-};
-
-/**
- * Símbolo canônico "LA" — monograma quadrado-arredondado (índigo denim + dourado).
- * IDs de gradiente são namespaced por instância (useId) pra não colidir quando
- * há vários logos na mesma página.
- */
-export function BrandMark({ className }: { className?: string }) {
-  const uid = useId().replace(/[:]/g, "");
-  const denim = `laDenim-${uid}`;
-  const gold = `laGold-${uid}`;
-  return (
-    <svg viewBox="0 0 96 96" className={className} role="img" aria-label="L. Augusto Atacado">
-      <defs>
-        <linearGradient id={denim} x1="10" y1="6" x2="86" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#2A3B61" />
-          <stop offset="1" stopColor="#1B2A4A" />
-        </linearGradient>
-        <linearGradient id={gold} x1="48" y1="22" x2="48" y2="74" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#D9BC78" />
-          <stop offset="1" stopColor="#C8A55B" />
-        </linearGradient>
-      </defs>
-      <rect x="2" y="2" width="92" height="92" rx="22" fill={`url(#${denim})`} />
-      <rect x="6.5" y="6.5" width="83" height="83" rx="17.5" fill="none" stroke={`url(#${gold})`} strokeWidth="1.6" />
-      <path d="M28 26 h11 v32 h13 v12 H28 Z" fill="#F4EFE6" />
-      <path d="M65 26 h6 l11 44 h-9 l-2.3 -9.2 h-5.4 l-2.3 9.2 h-9 Z M65.8 57 h4.4 L68 40 Z" fill={`url(#${gold})`} fillRule="evenodd" />
-    </svg>
-  );
-}
-
-/** Versão monocromática do símbolo (usa currentColor) — pra fundo escuro/etiqueta. */
-export function BrandMarkMono({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 96 96" className={className} role="img" aria-label="L. Augusto Atacado">
-      <rect x="2" y="2" width="92" height="92" rx="22" fill="none" stroke="currentColor" strokeWidth="3" />
-      <path d="M28 26 h11 v32 h13 v12 H28 Z" fill="currentColor" />
-      <path d="M65 26 h6 l11 44 h-9 l-2.3 -9.2 h-5.4 l-2.3 9.2 h-9 Z M65.8 57 h4.4 L68 40 Z" fill="currentColor" fillRule="evenodd" />
-    </svg>
-  );
-}
-
-/**
- * Altura da logo, por tamanho. A logo oficial é um lockup horizontal (~4:1),
- * então a altura é o que manda; a largura acompanha.
- */
-const IMG_HEIGHT: Record<Size, string> = {
-  sm: "h-10",
-  md: "h-14",
-  lg: "h-20",
-  xl: "h-28",
-};
-
-/**
- * A logo tem fundo escuro próprio. Sobre cabeçalho branco ela fica melhor como
- * um selo com cantos arredondados do que como imagem "solta".
- */
-const IMG_BASE = "w-auto rounded-lg object-contain";
+/** Proporções reais dos arquivos — evitam salto de layout (CLS) enquanto carrega. */
+const PROPORCAO_LOGO = { w: 720, h: 255 };
+const PROPORCAO_SIMBOLO = { w: 256, h: 182 };
 
 export default function BrandLogo({
   variant = "full",
   size = "md",
-  withTagline = false,
+  tone = "escuro",
   className = "",
   logoUrl = null,
   markUrl = null,
+  priority = false,
 }: {
   variant?: "full" | "mark";
   size?: Size;
-  withTagline?: boolean;
+  /** Fundo onde a logo vai: "escuro" usa creme+cobre; "claro" usa tinta+cobre. */
+  tone?: "escuro" | "claro";
   className?: string;
-  /** Logo horizontal enviada no painel. Sem ela, usa o monograma SVG. */
+  /** Logo personalizada enviada no painel (tem prioridade sobre a embutida). */
   logoUrl?: string | null;
-  /** Símbolo quadrado enviado no painel. */
   markUrl?: string | null;
+  /** true só na logo do topo da página (entra no LCP). */
+  priority?: boolean;
 }) {
-  if (variant === "mark") {
-    const src = markUrl ?? logoUrl;
-    if (src) {
-      return (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={src}
-          alt="L. Augusto Atacado"
-          className={`${MARK_SIZE[size]} rounded-lg object-contain ${className}`}
-        />
-      );
-    }
-    return <BrandMark className={`${MARK_SIZE[size]} ${className}`} />;
-  }
+  const ehSimbolo = variant === "mark";
+  const padrao = ehSimbolo
+    ? tone === "claro" ? MARK_TINTA : DEFAULT_MARK
+    : tone === "claro" ? LOGO_TINTA : DEFAULT_LOGO;
+  // Personalização do painel só vale se for upload próprio; senão, a embutida.
+  const custom = ehSimbolo ? markUrl ?? logoUrl : logoUrl;
+  const src = custom && custom.startsWith("/uploads/") ? custom : padrao;
+  const p = ehSimbolo ? PROPORCAO_SIMBOLO : PROPORCAO_LOGO;
 
-  // Logo enviada substitui o conjunto símbolo + tipografia.
-  if (logoUrl) {
-    return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={logoUrl}
-        alt="L. Augusto Atacado"
-        className={`${IMG_HEIGHT[size]} ${IMG_BASE} ${className}`}
-      />
-    );
-  }
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <BrandMark className={MARK_SIZE[size]} />
-      <div className="flex flex-col leading-none">
-        <span
-          className={`${WORD_SIZE[size]} font-bold text-brand-indigo`}
-          style={{ fontFamily: "var(--font-display), Georgia, serif" }}
-        >
-          L<span className="text-brand-gold">.</span>&nbsp;Augusto
-        </span>
-        <span className="mt-1.5 block w-full border-t border-dashed border-brand-gold" aria-hidden />
-        <span
-          className="mt-1.5 text-[10px] font-medium uppercase text-brand-graphite"
-          style={{ fontFamily: "var(--font-kicker), system-ui, sans-serif", letterSpacing: "0.34em" }}
-        >
-          Atacado
-          {withTagline && (
-            <span className="text-zinc-400" style={{ letterSpacing: "0.18em" }}>
-              {" · "}denim direto de fábrica
-            </span>
-          )}
-        </span>
-      </div>
-    </div>
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={src}
+      alt="ROTA Atacado"
+      width={p.w}
+      height={p.h}
+      decoding="async"
+      fetchPriority={priority ? "high" : "auto"}
+      className={`${ALTURA[size]} w-auto object-contain ${className}`}
+    />
   );
 }
