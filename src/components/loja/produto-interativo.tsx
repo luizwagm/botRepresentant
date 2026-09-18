@@ -365,8 +365,8 @@ export default function ProdutoInterativo({
                   {unico ? "Quantidade" : "Grade por tamanho"}
                   {corAtiva && ` da cor ${corAtiva}`}
                 </legend>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-creme-2" aria-hidden>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <p className="min-w-0 text-sm text-creme-2" aria-hidden>
                     {unico ? "Quantidade" : "Monte a grade"}
                     {p.cores.length > 0 && <span className="text-nevoa"> · {corAtiva}</span>}
                   </p>
@@ -374,13 +374,17 @@ export default function ProdutoInterativo({
                     <button
                       type="button"
                       onClick={umaDeCada}
-                      className="rounded-full px-3 py-1.5 text-[0.8rem] text-cobre-claro hover:bg-white/[0.04]"
+                      aria-label="Somar uma peça em cada tamanho"
+                      className="-mr-3 whitespace-nowrap rounded-full px-3 py-1.5 text-[0.8rem] text-cobre-claro hover:bg-white/[0.04]"
                     >
-                      + 1 de cada tamanho
+                      <span className="sm:hidden">+1 de cada</span>
+                      <span className="hidden sm:inline">+ 1 de cada tamanho</span>
                     </button>
                   )}
                 </div>
-                <div className={`mt-3 grid gap-2 ${unico ? "" : "grid-cols-2"}`}>
+                {/* Quantas colunas couberem (mín. 11rem cada): 1 no celular, 2–3 onde
+                    houver espaço. Coluna fixa estourava o card em telas estreitas. */}
+                <div className={`mt-3 grid gap-2 ${unico ? "" : "grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"}`}>
                   {tamanhos.map((t) => {
                     const q = gradeCor[t] ?? 0;
                     const rotulo = unico ? "Peças" : t;
@@ -392,8 +396,10 @@ export default function ProdutoInterativo({
                           q > 0 ? "border-cobre/50 bg-cobre/[0.06]" : "border-white/[0.08]"
                         }`}
                       >
-                        <span className="font-display text-[0.95rem] font-medium text-creme">{rotulo}</span>
-                        <div className="flex items-center">
+                        <span className="min-w-0 break-words font-display text-[0.95rem] font-medium text-creme">
+                          {rotulo}
+                        </span>
+                        <div className="flex shrink-0 items-center">
                           <button
                             type="button"
                             onClick={() => definir(t, q - 1)}
@@ -413,7 +419,7 @@ export default function ProdutoInterativo({
                             onChange={(e) => definir(t, Number(e.target.value))}
                             onFocus={(e) => e.currentTarget.select()}
                             aria-label={nomeCampo}
-                            className="rota-num h-9 w-12 rounded-lg bg-transparent text-center text-base text-creme placeholder:text-nevoa focus:bg-white/[0.04] focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            className="rota-num h-9 w-11 rounded-lg bg-transparent text-center text-base text-creme placeholder:text-nevoa focus:bg-white/[0.04] focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
@@ -556,16 +562,26 @@ export default function ProdutoInterativo({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.08] bg-asfalto/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl lg:hidden">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="rota-num truncate font-display text-[0.95rem] text-cobre-claro">{faixaPreco(p.precoMin, p.precoMax)}</p>
+            {/* Na barra estreita, só o menor preço — a faixa inteira não cabe ao lado do botão. */}
+            <p className="rota-num truncate font-display text-[0.95rem] text-cobre-claro">
+              {p.precoMin !== null && p.precoMax !== null && p.precoMax - p.precoMin > 0.004 ? (
+                <>
+                  <span className="font-texto text-[0.75rem] font-normal text-nevoa">desde </span>
+                  {dinheiro(p.precoMin)}
+                </>
+              ) : (
+                faixaPreco(p.precoMin, p.precoMax)
+              )}
+            </p>
             <p className="truncate text-[0.75rem] text-nevoa">
-              {selecionadas > 0 ? `${selecionadas} na seleção` : `mín. ${p.minimo} peças`}
+              {selecionadas > 0 ? `${selecionadas} na seleção` : `mín. ${p.minimo} pç`}
               {noPedido > 0 && ` · ${noPedido} no pedido`}
             </p>
           </div>
           {adicionadas !== null && selecionadas === 0 ? (
             <Link
               href={ROTAS.carrinho}
-              className="flex h-12 items-center gap-2 rounded-full bg-creme px-5 text-sm font-medium text-asfalto"
+              className="flex h-12 shrink-0 items-center gap-2 rounded-full bg-creme px-4 text-sm font-medium text-asfalto min-[360px]:px-5"
             >
               Ver pedido <IconeSeta className="h-4 w-4" />
             </Link>
@@ -573,7 +589,7 @@ export default function ProdutoInterativo({
             <button
               type="button"
               onClick={adicionarAoPedido}
-              className="flex h-12 items-center gap-2 rounded-full bg-cobre px-5 text-sm font-medium text-asfalto"
+              className="flex h-12 shrink-0 items-center gap-2 rounded-full bg-cobre px-4 text-sm font-medium text-asfalto min-[360px]:px-5"
             >
               <IconeSacola className="h-4 w-4" />
               {selecionadas > 0 ? "Adicionar" : "Montar grade"}

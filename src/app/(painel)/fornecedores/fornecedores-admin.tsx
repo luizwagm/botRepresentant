@@ -144,11 +144,11 @@ export default function FornecedoresAdmin() {
   return (
     <div className="space-y-8">
       {/* Formulário */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">{form.id ? "Editar fornecedor" : "Novo fornecedor"}</h2>
           {form.id && (
-            <button onClick={resetForm} className="text-sm text-zinc-500 hover:text-zinc-900">+ Novo</button>
+            <button onClick={resetForm} className="-mr-2 min-h-10 px-2 text-sm text-zinc-500 hover:text-zinc-900 sm:mr-0 sm:min-h-0 sm:px-0">+ Novo</button>
           )}
         </div>
 
@@ -161,7 +161,7 @@ export default function FornecedoresAdmin() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="ex.: Confecção Silva"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="O que fornece">
@@ -170,7 +170,7 @@ export default function FornecedoresAdmin() {
               value={form.productLine}
               onChange={(e) => setForm({ ...form, productLine: e.target.value })}
               placeholder="ex.: jeans masculino"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="Responsável (contato)">
@@ -178,7 +178,7 @@ export default function FornecedoresAdmin() {
               type="text"
               value={form.contactName}
               onChange={(e) => setForm({ ...form, contactName: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="WhatsApp">
@@ -187,7 +187,7 @@ export default function FornecedoresAdmin() {
               value={form.whatsapp}
               onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
               placeholder="(81) 99999-9999"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="Telefone">
@@ -195,7 +195,7 @@ export default function FornecedoresAdmin() {
               type="text"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="E-mail">
@@ -203,7 +203,7 @@ export default function FornecedoresAdmin() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="Cidade">
@@ -212,14 +212,14 @@ export default function FornecedoresAdmin() {
               value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
               placeholder="ex.: Toritama"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
           <Field label="UF">
             <select
               value={form.state}
               onChange={(e) => setForm({ ...form, state: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             >
               <option value="">—</option>
               {BR_STATES.map((s) => (
@@ -236,13 +236,15 @@ export default function FornecedoresAdmin() {
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={2}
               placeholder="Prazo de produção, condições, capacidade..."
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </Field>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
+        {/* No celular: checkbox numa linha e os botões empilhados em largura
+            total (salvar em cima); lado a lado "Cadastrar fornecedor" não cabe em 320px. */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex min-h-10 items-center gap-2 text-sm text-zinc-700 sm:min-h-0">
             <input
               type="checkbox"
               checked={form.active}
@@ -251,12 +253,12 @@ export default function FornecedoresAdmin() {
             />
             Fornecedor ativo
           </label>
-          <div className="flex gap-2">
-            <button onClick={resetForm} className="rounded-md px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+            <button onClick={resetForm} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 sm:py-2">Cancelar</button>
             <button
               onClick={save}
               disabled={saving}
-              className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:py-2"
             >
               {saving ? "Salvando..." : form.id ? "Salvar alterações" : "Cadastrar fornecedor"}
             </button>
@@ -277,8 +279,11 @@ export default function FornecedoresAdmin() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-zinc-200 text-sm">
-              <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+            {/* Abaixo de sm a tabela vira cartões (mesmo markup, só display):
+                com 6 colunas o overflow-hidden cortava Editar/Excluir no celular.
+                Os rótulos "sm:hidden" repetem o cabeçalho, que some no celular. */}
+            <table className="block min-w-full divide-y divide-zinc-200 text-sm sm:table">
+              <thead className="hidden bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-header-group">
                 <tr>
                   <th className="px-4 py-3">Fornecedor</th>
                   <th className="px-4 py-3">Fornece</th>
@@ -288,29 +293,37 @@ export default function FornecedoresAdmin() {
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="block divide-y divide-zinc-100 sm:table-row-group">
                 {suppliers.map((s) => (
-                  <tr key={s.id} className="hover:bg-zinc-50/60">
-                    <td className="px-4 py-3">
+                  <tr key={s.id} className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 hover:bg-zinc-50/60 sm:table-row sm:p-0">
+                    <td className="col-span-2 break-words sm:px-4 sm:py-3">
                       <div className="font-medium text-zinc-900">{s.name}</div>
                       {s.contactName && <div className="text-xs text-zinc-500">{s.contactName}</div>}
                       {!s.active && <span className="mt-0.5 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">inativo</span>}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">{s.productLine ?? <span className="text-zinc-400">—</span>}</td>
-                    <td className="px-4 py-3 text-zinc-700">
+                    <td className="break-words text-zinc-700 sm:px-4 sm:py-3">
+                      <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Fornece</span>
+                      {s.productLine ?? <span className="text-zinc-400">—</span>}
+                    </td>
+                    <td className="break-words text-zinc-700 sm:px-4 sm:py-3">
+                      <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Local</span>
                       {s.city || s.state ? `${s.city ?? ""}${s.city && s.state ? "/" : ""}${s.state ?? ""}` : <span className="text-zinc-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-600">
+                    <td className="break-words text-xs text-zinc-600 sm:px-4 sm:py-3">
+                      <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Contato</span>
                       {s.whatsapp && <div className="text-emerald-700">WA: {s.whatsapp}</div>}
                       {s.phone && <div>{s.phone}</div>}
                       {s.email && <div className="text-zinc-500">{s.email}</div>}
                       {!s.whatsapp && !s.phone && !s.email && <span className="text-zinc-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">{s._count?.products ?? 0}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => startEdit(s)} className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200">Editar</button>
-                        <button onClick={() => remove(s)} className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100">Excluir</button>
+                    <td className="text-zinc-700 sm:px-4 sm:py-3">
+                      <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Produtos</span>
+                      {s._count?.products ?? 0}
+                    </td>
+                    <td className="col-span-2 sm:px-4 sm:py-3">
+                      <div className="flex gap-2 sm:justify-end">
+                        <button onClick={() => startEdit(s)} className="flex-1 rounded-md bg-zinc-100 px-3 py-2.5 text-sm font-medium hover:bg-zinc-200 sm:flex-initial sm:py-1.5 sm:text-xs">Editar</button>
+                        <button onClick={() => remove(s)} className="flex-1 rounded-md bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 sm:flex-initial sm:py-1.5 sm:text-xs">Excluir</button>
                       </div>
                     </td>
                   </tr>

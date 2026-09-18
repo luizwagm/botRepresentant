@@ -120,19 +120,19 @@ export default function AuditTable() {
             placeholder="Buscar no resumo..."
             value={q}
             onChange={(e) => resetPageAnd(setQ)(e.target.value)}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           />
           <input
             type="text"
             placeholder="Ator (email)"
             value={actor}
             onChange={(e) => resetPageAnd(setActor)(e.target.value)}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           />
           <select
             value={action}
             onChange={(e) => resetPageAnd(setAction)(e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="">Toda ação</option>
             {ACTIONS.map((a) => (
@@ -142,7 +142,7 @@ export default function AuditTable() {
           <select
             value={entityType}
             onChange={(e) => resetPageAnd(setEntityType)(e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="">Toda entidade</option>
             {ENTITIES.map((e) => (
@@ -155,9 +155,16 @@ export default function AuditTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm">
-          <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+      {/* Abaixo de sm a tabela vira cartões (mesmo markup, só display): o
+          cabeçalho some e cada linha vira um flex que quebra — ação e data em
+          cima, depois ator, resumo e IP. Os order-* só valem no flex; na tabela
+          as células seguem a ordem do HTML. De sm em diante volta a ser tabela,
+          rolando de lado dentro do cartão quando não couber (a página não rola).
+          min-w-0 + break-words deixam e-mail/resumo/JSON longo quebrar no cartão;
+          em célula de tabela os dois não mudam a largura das colunas. */}
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <table className="block min-w-full divide-y divide-zinc-200 text-sm sm:table">
+          <thead className="hidden bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-header-group">
             <tr>
               <th className="px-4 py-3">Data/hora</th>
               <th className="px-4 py-3">Ator</th>
@@ -166,9 +173,9 @@ export default function AuditTable() {
               <th className="px-4 py-3">IP</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="block divide-y divide-zinc-100 sm:table-row-group">
             {!loading && items.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-zinc-500">Nenhum registro.</td></tr>
+              <tr className="block sm:table-row"><td colSpan={5} className="block px-4 py-10 text-center text-zinc-500 sm:table-cell">Nenhum registro.</td></tr>
             )}
             {items.map((e) => {
               const hasChanges = e.changes !== null && e.changes !== undefined;
@@ -177,26 +184,29 @@ export default function AuditTable() {
                 <Fragment key={e.id}>
                   <tr
                     onClick={() => hasChanges && setExpanded(isOpen ? null : e.id)}
-                    className={`${hasChanges ? "cursor-pointer hover:bg-zinc-50/60" : ""}`}
+                    className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 sm:table-row sm:p-0 ${hasChanges ? "cursor-pointer hover:bg-zinc-50/60" : ""}`}
                   >
-                    <td className="px-4 py-3 whitespace-nowrap text-zinc-600">{fmt(e.createdAt)}</td>
-                    <td className="px-4 py-3 text-zinc-700">{e.actorEmail ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="order-2 ml-auto whitespace-nowrap text-xs text-zinc-600 sm:ml-0 sm:px-4 sm:py-3 sm:text-sm">{fmt(e.createdAt)}</td>
+                    <td className="order-3 min-w-0 basis-full break-words text-zinc-700 sm:px-4 sm:py-3">{e.actorEmail ?? "—"}</td>
+                    <td className="order-1 sm:px-4 sm:py-3">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${ACTION_COLOR[e.action] ?? "bg-zinc-100 text-zinc-700 ring-zinc-200"}`}>
                         {ACTION_LABEL[e.action] ?? e.action}
                       </span>
                       {e.entityType && <span className="ml-1 text-xs text-zinc-400">{e.entityType}</span>}
                     </td>
-                    <td className="px-4 py-3 text-zinc-800">
+                    <td className="order-4 min-w-0 basis-full break-words text-zinc-800 sm:px-4 sm:py-3">
                       {e.summary}
                       {hasChanges && <span className="ml-2 text-xs text-indigo-500">{isOpen ? "▲" : "▼ detalhes"}</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-400">{e.ip ?? "—"}</td>
+                    <td className="order-5 min-w-0 basis-full break-words text-xs text-zinc-400 sm:px-4 sm:py-3">
+                      <span className="mr-1 text-[10px] font-medium uppercase tracking-wider sm:hidden">IP</span>
+                      {e.ip ?? "—"}
+                    </td>
                   </tr>
                   {isOpen && hasChanges && (
-                    <tr className="bg-zinc-50/80">
-                      <td colSpan={5} className="px-4 py-3">
-                        <pre className="overflow-x-auto whitespace-pre-wrap text-xs text-zinc-600">{renderChanges(e.changes)}</pre>
+                    <tr className="block bg-zinc-50/80 sm:table-row">
+                      <td colSpan={5} className="block px-4 py-3 sm:table-cell">
+                        <pre className="overflow-x-auto whitespace-pre-wrap break-words text-xs text-zinc-600">{renderChanges(e.changes)}</pre>
                       </td>
                     </tr>
                   )}
@@ -208,11 +218,11 @@ export default function AuditTable() {
       </div>
 
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-zinc-600">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-zinc-600">
           <div>Página {pagination.page} de {pagination.totalPages}</div>
           <div className="flex gap-2">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50">Anterior</button>
-            <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page >= pagination.totalPages} className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50">Próxima</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 sm:py-1.5">Anterior</button>
+            <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page >= pagination.totalPages} className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 sm:py-1.5">Próxima</button>
           </div>
         </div>
       )}

@@ -69,15 +69,20 @@ export default function UsersAdmin({ currentUserId }: { currentUserId: string })
       <div className="flex justify-end">
         <button
           onClick={() => setModal({ mode: "create" })}
-          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 sm:py-2"
         >
           <span className="text-base leading-none">+</span> Novo usuário
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm">
-          <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+      {/* Abaixo de sm a tabela vira cartões (mesmo markup, só display): com 5
+          colunas o overflow-hidden cortava Editar/Desativar/Excluir no celular.
+          De sm em diante é tabela de novo, rolando de lado dentro do cartão
+          quando não couber (a página não rola). Os rótulos "sm:hidden" repetem
+          o cabeçalho, que some no celular. */}
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <table className="block min-w-full divide-y divide-zinc-200 text-sm sm:table">
+          <thead className="hidden bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-header-group">
             <tr>
               <th className="px-4 py-3">Usuário</th>
               <th className="px-4 py-3">Papel</th>
@@ -86,38 +91,43 @@ export default function UsersAdmin({ currentUserId }: { currentUserId: string })
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="block divide-y divide-zinc-100 sm:table-row-group">
             {loading && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-zinc-500">Carregando...</td></tr>
+              <tr className="block sm:table-row"><td colSpan={5} className="block px-4 py-10 text-center text-zinc-500 sm:table-cell">Carregando...</td></tr>
             )}
             {!loading && users.map((u) => {
               const isSelf = u.id === currentUserId;
               return (
-                <tr key={u.id} className="hover:bg-zinc-50/60">
-                  <td className="px-4 py-3">
+                <tr key={u.id} className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 hover:bg-zinc-50/60 sm:table-row sm:p-0">
+                  <td className="col-span-2 break-words sm:px-4 sm:py-3">
                     <div className="font-medium text-zinc-900">{u.name ?? "—"} {isSelf && <span className="text-xs text-indigo-600">(você)</span>}</div>
                     <div className="text-xs text-zinc-500">{u.email}</div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="sm:px-4 sm:py-3">
+                    <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Papel</span>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${u.role === "ADMIN" ? "bg-violet-50 text-violet-700 ring-violet-200" : "bg-zinc-100 text-zinc-700 ring-zinc-200"}`}>
                       {ROLE_LABEL[u.role]}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="sm:px-4 sm:py-3">
+                    <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Status</span>
                     {u.active ? (
                       <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">ativo</span>
                     ) : (
                       <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 ring-1 ring-inset ring-zinc-200">inativo</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-zinc-600">{formatDate(u.lastLoginAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => setModal({ mode: "edit", user: u })} className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200">Editar</button>
+                  <td className="col-span-2 text-zinc-600 sm:px-4 sm:py-3">
+                    <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:hidden">Último acesso</span>
+                    {formatDate(u.lastLoginAt)}
+                  </td>
+                  <td className="col-span-2 sm:px-4 sm:py-3">
+                    <div className="flex gap-2 sm:justify-end">
+                      <button onClick={() => setModal({ mode: "edit", user: u })} className="flex-1 rounded-md bg-zinc-100 px-3 py-2.5 text-sm font-medium hover:bg-zinc-200 sm:flex-initial sm:py-1.5 sm:text-xs">Editar</button>
                       <button
                         onClick={() => toggleActive(u)}
                         disabled={isSelf}
-                        className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200 disabled:opacity-40"
+                        className="flex-1 rounded-md bg-zinc-100 px-3 py-2.5 text-sm font-medium hover:bg-zinc-200 disabled:opacity-40 sm:flex-initial sm:py-1.5 sm:text-xs"
                         title={isSelf ? "Não dá pra desativar a si mesmo" : ""}
                       >
                         {u.active ? "Desativar" : "Ativar"}
@@ -125,7 +135,7 @@ export default function UsersAdmin({ currentUserId }: { currentUserId: string })
                       <button
                         onClick={() => remove(u)}
                         disabled={isSelf}
-                        className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-40"
+                        className="flex-1 rounded-md bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-40 sm:flex-initial sm:py-1.5 sm:text-xs"
                         title={isSelf ? "Não dá pra excluir a si mesmo" : ""}
                       >
                         Excluir
@@ -204,25 +214,27 @@ function UserModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between border-b border-zinc-200 px-6 py-4">
+      {/* max-h-full + corpo rolável: em tela baixa (celular deitado, teclado
+          aberto) cabeçalho e botões ficam visíveis e os campos rolam por dentro. */}
+      <div className="flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 items-start justify-between border-b border-zinc-200 px-4 py-4 sm:px-6">
           <h2 className="text-lg font-semibold tracking-tight">{editing ? "Editar usuário" : "Novo usuário"}</h2>
-          <button onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100" aria-label="Fechar">✕</button>
+          <button onClick={onClose} className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 sm:p-1" aria-label="Fechar">✕</button>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="min-h-0 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
           {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-700">Email</label>
             {editing ? (
-              <div className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">{email}</div>
+              <div className="break-words rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">{email}</div>
             ) : (
               <input
                 type="email"
                 value={emailNew}
                 onChange={(e) => setEmailNew(e.target.value)}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
                 placeholder="vendedor@empresa.com"
               />
             )}
@@ -234,7 +246,7 @@ function UserModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               placeholder="Nome da pessoa"
             />
           </div>
@@ -244,7 +256,7 @@ function UserModal({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             >
               <option value="VENDEDOR">Vendedor (usa leads, funil e catálogo)</option>
               <option value="ADMIN">Administrador (acesso total + usuários e auditoria)</option>
@@ -259,18 +271,18 @@ function UserModal({
               type="text"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               placeholder={editing ? "••••••" : "mínimo 6 caracteres"}
             />
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
-          <button onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">Cancelar</button>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-zinc-200 px-4 py-4 sm:px-6">
+          <button onClick={onClose} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 sm:py-2">Cancelar</button>
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:py-2"
           >
             {saving ? "Salvando..." : editing ? "Salvar" : "Criar usuário"}
           </button>

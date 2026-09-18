@@ -114,19 +114,21 @@ export default function LeadsTable() {
       <div className="flex items-center justify-end">
         <button
           onClick={() => setShowHunt(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 sm:py-2"
         >
           <span className="text-base leading-none">+</span> Buscar lojas
         </button>
       </div>
       <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        {/* Campos com text-base no celular: abaixo de 16px o iPhone dá zoom ao
+            focar e a página fica "torta", rolando de lado. */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <input
             type="text"
             placeholder="Buscar por nome ou endereço..."
             value={filters.q}
             onChange={(e) => updateFilter("q", e.target.value)}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           />
           <select
             value={filters.state}
@@ -134,7 +136,7 @@ export default function LeadsTable() {
               setFilters((f) => ({ ...f, state: e.target.value, city: "" }));
               setPage(1);
             }}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="">UF (todas)</option>
             {BR_STATES.map((s) => (
@@ -145,7 +147,7 @@ export default function LeadsTable() {
             value={filters.city}
             onChange={(e) => updateFilter("city", e.target.value)}
             disabled={!filters.state}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50 disabled:text-zinc-400"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50 disabled:text-zinc-400 sm:text-sm"
           >
             <option value="">{filters.state ? "Cidade (todas)" : "Escolha a UF primeiro"}</option>
             {citiesForFilterState.map((c) => (
@@ -155,7 +157,7 @@ export default function LeadsTable() {
           <select
             value={filters.storeType}
             onChange={(e) => updateFilter("storeType", e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="">Tipo</option>
             {STORE_TYPES.map((t) => (
@@ -165,7 +167,7 @@ export default function LeadsTable() {
           <select
             value={filters.businessKind}
             onChange={(e) => updateFilter("businessKind", e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="">Fabricante/varejista</option>
             {BUSINESS_KINDS.map((k) => (
@@ -175,14 +177,15 @@ export default function LeadsTable() {
           <select
             value={filters.funnelStage}
             onChange={(e) => updateFilter("funnelStage", e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="">Etapa do funil</option>
             {FUNNEL_STAGES.map((s) => (
               <option key={s} value={s}>{FUNNEL_STAGE_LABEL[s]}</option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
+          {/* py-2.5 no celular: a linha do checkbox vira alvo de toque de ~40px. */}
+          <label className="flex items-center gap-2 py-2.5 text-sm text-zinc-700 sm:py-0">
             <input
               type="checkbox"
               checked={filters.hasWhatsapp}
@@ -191,7 +194,7 @@ export default function LeadsTable() {
             />
             Com WhatsApp
           </label>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
+          <label className="flex items-center gap-2 py-2.5 text-sm text-zinc-700 sm:py-0">
             <input
               type="checkbox"
               checked={filters.hasInstagram}
@@ -202,7 +205,7 @@ export default function LeadsTable() {
           </label>
           <button
             onClick={clearFilters}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 sm:py-2"
           >
             Limpar filtros
           </button>
@@ -215,9 +218,14 @@ export default function LeadsTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm">
-          <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+      {/* No celular (< sm) a tabela vira lista de cartões: o cabeçalho some e
+          cada linha é um grid de 2 colunas. De sm em diante volta a ser tabela,
+          rolando de lado dentro do cartão quando não couber (a página não rola).
+          O break-words não mexe na largura mínima das colunas da tabela, então
+          no desktop não muda nada — só evita IG/número estourando o cartão. */}
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <table className="block min-w-full divide-y divide-zinc-200 text-sm sm:table">
+          <thead className="hidden bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-header-group">
             <tr>
               <th className="px-4 py-3">Loja</th>
               <th className="px-4 py-3">Cidade/UF</th>
@@ -227,10 +235,10 @@ export default function LeadsTable() {
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="block divide-y divide-zinc-100 sm:table-row-group">
             {leads.length === 0 && !loading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-sm text-zinc-500">
+              <tr className="block sm:table-row">
+                <td colSpan={6} className="block px-4 py-12 text-center text-sm text-zinc-500 sm:table-cell">
                   Nenhum lead encontrado.
                 </td>
               </tr>
@@ -239,18 +247,18 @@ export default function LeadsTable() {
               <tr
                 key={lead.id}
                 onClick={() => setSelected(lead)}
-                className="cursor-pointer hover:bg-indigo-50/50"
+                className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-2 px-4 py-3 hover:bg-indigo-50/50 sm:table-row sm:p-0"
               >
-                <td className="px-4 py-3">
+                <td className="col-span-2 break-words sm:px-4 sm:py-3">
                   <div className="font-medium text-zinc-900">{lead.name}</div>
                   {lead.responsibleName && (
                     <div className="text-xs text-zinc-500">Resp.: {lead.responsibleName}</div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-zinc-700">
+                <td className="break-words text-zinc-700 sm:px-4 sm:py-3">
                   {lead.city}/{lead.state}
                 </td>
-                <td className="px-4 py-3 text-zinc-700">
+                <td className="text-zinc-700 sm:px-4 sm:py-3">
                   <div>{STORE_TYPE_LABEL[lead.storeType]}</div>
                   <span
                     className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${BUSINESS_KIND_COLOR[lead.businessKind]}`}
@@ -258,7 +266,7 @@ export default function LeadsTable() {
                     {BUSINESS_KIND_LABEL[lead.businessKind]}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-700">
+                <td className="text-zinc-700 sm:px-4 sm:py-3">
                   {lead.rating ? (
                     <span>
                       {lead.rating}★ <span className="text-zinc-400">({lead.reviewCount ?? 0})</span>
@@ -267,14 +275,14 @@ export default function LeadsTable() {
                     <span className="text-zinc-400">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-zinc-700">
+                <td className="break-words text-zinc-700 sm:px-4 sm:py-3">
                   <div className="flex flex-col gap-0.5 text-xs">
                     {lead.whatsapp && <span className="text-emerald-700">WA: {lead.whatsapp}</span>}
                     {lead.instagram && <span className="text-pink-700">IG: @{lead.instagram}</span>}
                     {!lead.whatsapp && !lead.instagram && <span className="text-zinc-400">sem contato direto</span>}
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="col-span-2 sm:px-4 sm:py-3">
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${FUNNEL_STAGE_COLOR[lead.funnelStage]}`}
                   >
@@ -293,20 +301,20 @@ export default function LeadsTable() {
       </div>
 
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-zinc-600">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-zinc-600">
           <div>Página {page} de {pagination.totalPages}</div>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 sm:py-1.5"
             >
               Anterior
             </button>
             <button
               onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
               disabled={page >= pagination.totalPages}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 sm:py-1.5"
             >
               Próxima
             </button>
@@ -368,21 +376,25 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
       className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 p-4"
       onClick={running ? undefined : onClose}
     >
-      <div className="w-full max-w-md rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between border-b border-zinc-200 px-6 py-4">
-          <div>
+      {/* max-h-full + rolagem interna: celular deitado ou com o resultado na
+          tela, o modal não passa da altura visível (senão o topo some). */}
+      <div className="max-h-full w-full max-w-md overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between border-b border-zinc-200 px-4 py-4 sm:px-6">
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold tracking-tight">Buscar lojas</h2>
             <p className="mt-0.5 text-sm text-zinc-500">Varre o Google Maps e adiciona lojas novas ao banco.</p>
           </div>
+          {/* No celular o ✕ ganha área de toque de ~40px; a margem negativa
+              mantém o ícone no mesmo lugar visual. */}
           <button
             onClick={onClose}
             disabled={running}
-            className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-40"
+            className="-m-2 rounded-md p-3 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-40 sm:m-0 sm:p-1"
             aria-label="Fechar"
           >✕</button>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="space-y-4 px-4 py-5 sm:px-6">
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-700">Estado (UF)</label>
             <select
@@ -392,7 +404,7 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
                 setCity("");
               }}
               disabled={running}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50 sm:text-sm"
             >
               <option value="">Selecione a UF...</option>
               {BR_STATES.map((s) => (
@@ -408,7 +420,7 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
               value={city}
               onChange={(e) => setCity(e.target.value)}
               disabled={running || !state}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-zinc-50 sm:text-sm"
             >
               <option value="">{state ? `Selecione a cidade (${citiesForState.length})...` : "Escolha a UF primeiro"}</option>
               {citiesForState.map((c) => (
@@ -439,18 +451,18 @@ function HuntModal({ onClose, onDone }: { onClose: () => void; onDone: () => voi
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 px-4 py-4 sm:px-6">
           <button
             onClick={onClose}
             disabled={running}
-            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-40"
+            className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 sm:py-2"
           >
             {result ? "Fechar" : "Cancelar"}
           </button>
           <button
             onClick={run}
             disabled={running}
-            className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:py-2"
           >
             {running ? "Buscando..." : result ? "Buscar outra" : "Buscar"}
           </button>

@@ -53,14 +53,16 @@ export default function Cabecalho({
       {/* Faixa de aviso — só fatos que valem para todo pedido */}
       <div className="border-b border-white/[0.06] bg-carvao text-[0.78rem] text-creme-2">
         <div className="mx-auto flex h-9 max-w-[1320px] items-center justify-center gap-3 px-5 sm:px-8">
-          <span className="truncate">
+          {/* Celular: uma frase curta que cabe inteira em 320px; da tablet pra cima, as três. */}
+          <span className="truncate sm:hidden">
+            <span className="text-cobre-claro">Atacado direto do Polo do Agreste</span>
+          </span>
+          <span className="hidden truncate sm:inline">
             <span className="text-cobre-claro">Direto do Polo do Agreste</span>
-            <span className="hidden sm:inline">
-              <span className="mx-2.5 text-nevoa" aria-hidden>
-                /
-              </span>
-              Atacado para lojistas de todo o Brasil
+            <span className="mx-2.5 text-nevoa" aria-hidden>
+              /
             </span>
+            Atacado para lojistas de todo o Brasil
             <span className="mx-2.5 text-nevoa" aria-hidden>
               /
             </span>

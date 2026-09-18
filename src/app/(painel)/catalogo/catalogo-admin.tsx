@@ -267,17 +267,17 @@ export default function CatalogoAdmin() {
   return (
     <div className="space-y-8">
       {/* Formulario */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">{form.id ? "Editar produto" : "Novo produto"}</h2>
           {form.id && (
-            <button onClick={resetForm} className="text-sm text-zinc-500 hover:text-zinc-900">
+            <button onClick={resetForm} className="-mr-2 min-h-10 px-2 text-sm text-zinc-500 hover:text-zinc-900 sm:mr-0 sm:min-h-0 sm:px-0">
               + Novo
             </button>
           )}
         </div>
 
-        {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="mb-4 break-words rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
         <div className="space-y-4">
           <div>
@@ -321,7 +321,7 @@ export default function CatalogoAdmin() {
                           : [...f.categories, c.slug],
                       }))
                     }
-                    className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
+                    className={`min-h-10 rounded-full border px-3 py-1 text-sm font-medium transition sm:min-h-0 ${
                       on
                         ? "border-indigo-600 bg-indigo-600 text-white"
                         : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
@@ -359,18 +359,20 @@ export default function CatalogoAdmin() {
             <label className="mb-1 block text-xs font-medium text-zinc-700">Fotos (frente, costas, lateral, detalhe, etiqueta — a primeira vira capa)</label>
             <div className="flex flex-wrap gap-3">
               {form.images.map((url, idx) => (
-                <div key={url} className="group relative h-24 w-24 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
+                <div key={url} className="group relative h-30 w-30 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50 sm:h-24 sm:w-24">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt="" className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 flex items-end justify-between bg-black/30 p-1 opacity-0 transition group-hover:opacity-100">
-                    <button onClick={() => moveMedia("images", idx, -1)} className="rounded bg-white/90 px-1 text-xs">◀</button>
-                    <button onClick={() => removeMedia("images", idx)} className="rounded bg-red-600 px-1 text-xs text-white">✕</button>
-                    <button onClick={() => moveMedia("images", idx, 1)} className="rounded bg-white/90 px-1 text-xs">▶</button>
+                  {/* Só esconde os controles onde existe hover (mouse): no toque o
+                      group-hover nunca dispara e os botões ficariam invisíveis. */}
+                  <div className="absolute inset-0 flex items-end justify-between p-1 transition group-hover:opacity-100 [@media(hover:hover)]:bg-black/30 [@media(hover:hover)]:opacity-0">
+                    <button onClick={() => moveMedia("images", idx, -1)} className="h-8 w-8 rounded bg-white/90 px-1 text-xs sm:h-auto sm:w-auto">◀</button>
+                    <button onClick={() => removeMedia("images", idx)} className="h-8 w-8 rounded bg-red-600 px-1 text-xs text-white sm:h-auto sm:w-auto">✕</button>
+                    <button onClick={() => moveMedia("images", idx, 1)} className="h-8 w-8 rounded bg-white/90 px-1 text-xs sm:h-auto sm:w-auto">▶</button>
                   </div>
                   {idx === 0 && <span className="absolute left-1 top-1 rounded bg-indigo-600 px-1 text-[10px] text-white">capa</span>}
                 </div>
               ))}
-              <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-zinc-300 text-center text-xs text-zinc-500 hover:border-indigo-400 hover:text-indigo-600">
+              <label className="flex h-30 w-30 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-zinc-300 text-center text-xs text-zinc-500 hover:border-indigo-400 hover:text-indigo-600 sm:h-24 sm:w-24">
                 {uploading === "images" ? "Subindo..." : "+ Foto"}
                 <input
                   type="file"
@@ -388,17 +390,17 @@ export default function CatalogoAdmin() {
             <label className="mb-1 block text-xs font-medium text-zinc-700">Vídeos (peça em movimento, giro 360° — opcional, até 50MB cada)</label>
             <div className="flex flex-wrap gap-3">
               {form.videos.map((url, idx) => (
-                <div key={url} className="group relative h-24 w-24 overflow-hidden rounded-md border border-zinc-200 bg-black">
+                <div key={url} className="group relative h-30 w-30 overflow-hidden rounded-md border border-zinc-200 bg-black sm:h-24 sm:w-24">
                   <video src={url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                   <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-white/90">▶</span>
-                  <div className="absolute inset-0 flex items-end justify-between bg-black/30 p-1 opacity-0 transition group-hover:opacity-100">
-                    <button onClick={() => moveMedia("videos", idx, -1)} className="rounded bg-white/90 px-1 text-xs">◀</button>
-                    <button onClick={() => removeMedia("videos", idx)} className="rounded bg-red-600 px-1 text-xs text-white">✕</button>
-                    <button onClick={() => moveMedia("videos", idx, 1)} className="rounded bg-white/90 px-1 text-xs">▶</button>
+                  <div className="absolute inset-0 flex items-end justify-between p-1 transition group-hover:opacity-100 [@media(hover:hover)]:bg-black/30 [@media(hover:hover)]:opacity-0">
+                    <button onClick={() => moveMedia("videos", idx, -1)} className="h-8 w-8 rounded bg-white/90 px-1 text-xs sm:h-auto sm:w-auto">◀</button>
+                    <button onClick={() => removeMedia("videos", idx)} className="h-8 w-8 rounded bg-red-600 px-1 text-xs text-white sm:h-auto sm:w-auto">✕</button>
+                    <button onClick={() => moveMedia("videos", idx, 1)} className="h-8 w-8 rounded bg-white/90 px-1 text-xs sm:h-auto sm:w-auto">▶</button>
                   </div>
                 </div>
               ))}
-              <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-zinc-300 text-center text-xs text-zinc-500 hover:border-indigo-400 hover:text-indigo-600">
+              <label className="flex h-30 w-30 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-zinc-300 text-center text-xs text-zinc-500 hover:border-indigo-400 hover:text-indigo-600 sm:h-24 sm:w-24">
                 {uploading === "videos" ? "Subindo..." : "+ Vídeo"}
                 <input
                   type="file"
@@ -448,7 +450,7 @@ export default function CatalogoAdmin() {
                   <button
                     type="button"
                     onClick={() => removeColor(i)}
-                    className="rounded-md bg-red-50 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100"
+                    className="min-h-10 rounded-md bg-red-50 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100 sm:min-h-0"
                   >
                     Remover
                   </button>
@@ -489,7 +491,7 @@ export default function CatalogoAdmin() {
               />
             </div>
             <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex min-h-10 items-center gap-2 text-sm sm:min-h-0">
                 <input
                   type="checkbox"
                   checked={form.active}
@@ -547,7 +549,7 @@ export default function CatalogoAdmin() {
               />
             </div>
             <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex min-h-10 items-center gap-2 text-sm sm:min-h-0">
                 <input
                   type="checkbox"
                   checked={form.readyToShip}
@@ -559,12 +561,13 @@ export default function CatalogoAdmin() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <button onClick={resetForm} className="rounded-md px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100">Cancelar</button>
+          {/* No celular os botões empilham em largura total, com o principal em cima. */}
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:items-center sm:justify-end">
+            <button onClick={resetForm} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 sm:py-2">Cancelar</button>
             <button
               onClick={save}
               disabled={saving || uploading !== null}
-              className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:py-2"
             >
               {saving ? "Salvando..." : form.id ? "Salvar alterações" : "Cadastrar produto"}
             </button>
@@ -598,9 +601,9 @@ export default function CatalogoAdmin() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold leading-tight">{p.name}</h3>
+                    <h3 className="min-w-0 break-words text-sm font-semibold leading-tight">{p.name}</h3>
                     {!p.active && (
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">inativo</span>
+                      <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">inativo</span>
                     )}
                   </div>
                   {(p.wholesalePriceMin ?? p.wholesalePriceMax) !== null && (
@@ -609,9 +612,9 @@ export default function CatalogoAdmin() {
                     </div>
                   )}
                   <div className="mt-3 flex gap-2">
-                    <button onClick={() => startEdit(p)} className="flex-1 rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200">Editar</button>
-                    <button onClick={() => copyLink(p.id)} title="Copiar link público do produto" className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium hover:bg-zinc-200">Link</button>
-                    <button onClick={() => remove(p.id)} className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100">Excluir</button>
+                    <button onClick={() => startEdit(p)} className="flex-1 rounded-md bg-zinc-100 px-3 py-3 text-xs font-medium hover:bg-zinc-200 sm:py-1.5">Editar</button>
+                    <button onClick={() => copyLink(p.id)} title="Copiar link público do produto" className="rounded-md bg-zinc-100 px-3 py-3 text-xs font-medium hover:bg-zinc-200 sm:py-1.5">Link</button>
+                    <button onClick={() => remove(p.id)} className="rounded-md bg-red-50 px-3 py-3 text-xs font-medium text-red-700 hover:bg-red-100 sm:py-1.5">Excluir</button>
                   </div>
                 </div>
               </div>

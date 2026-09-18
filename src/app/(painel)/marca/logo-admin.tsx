@@ -83,7 +83,7 @@ export default function LogoAdmin() {
   const usandoPadrao = brand.logoUrl === DEFAULT_LOGO;
 
   return (
-    <section className="mb-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <section className="mb-8 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-base font-semibold text-zinc-900">Trocar a logomarca</h2>
       <p className="mt-1 text-sm text-zinc-600">
         A logo definida aqui vale para <strong>todo o sistema</strong>: painel, catálogo público,
@@ -117,11 +117,11 @@ export default function LogoAdmin() {
       </div>
 
       {/* Prévia real: mesmo componente que o site usa */}
-      <div className="mt-5 rounded-xl border border-zinc-200 bg-asfalto p-4">
+      <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200 bg-asfalto p-4">
         <div className="text-xs font-medium uppercase tracking-wide text-nevoa">
           Prévia no cabeçalho
         </div>
-        <div className="mt-3 flex items-center gap-6">
+        <div className="mt-3 flex flex-wrap items-center gap-6">
           <BrandLogo variant="full" size="sm" logoUrl={brand.logoUrl} markUrl={brand.markUrl} />
           <BrandLogo variant="mark" size="md" logoUrl={brand.logoUrl} markUrl={brand.markUrl} />
         </div>
@@ -134,7 +134,7 @@ export default function LogoAdmin() {
         <button
           onClick={() => void salvar()}
           disabled={salvando || enviando !== null}
-          className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+          className="w-full rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 sm:w-auto sm:py-2"
         >
           {salvando ? "Salvando..." : "Salvar logomarca"}
         </button>
@@ -179,7 +179,7 @@ function Slot({
         )}
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <label className="cursor-pointer rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
+        <label className="flex-1 cursor-pointer rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-50 sm:flex-initial sm:py-1.5 sm:text-xs">
           {enviando ? "Enviando..." : url ? "Trocar" : "Escolher imagem"}
           <input
             type="file"
@@ -191,7 +191,7 @@ function Slot({
         {url && (
           <button
             onClick={onLimpar}
-            className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+            className="flex-1 rounded-md bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 sm:flex-initial sm:py-1.5 sm:text-xs"
           >
             Remover
           </button>

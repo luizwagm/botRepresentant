@@ -21,11 +21,12 @@ export default function Ordenacao({
   const router = useRouter();
 
   return (
-    <form action={acao} method="get" className="flex items-center gap-2">
+    <form action={acao} method="get" className="flex min-w-0 items-center gap-2">
       {Object.entries(manter).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
-      <label htmlFor="rota-ordem" className="text-sm text-nevoa">
+      {/* No celular o rótulo some da tela (fica pro leitor de tela): o select já diz a ordem. */}
+      <label htmlFor="rota-ordem" className="sr-only text-sm text-nevoa sm:not-sr-only">
         Ordenar
       </label>
       <select
@@ -36,7 +37,7 @@ export default function Ordenacao({
           const qs = new URLSearchParams({ ...manter, ordem: e.target.value });
           router.push(`${acao}?${qs.toString()}`, { scroll: false });
         }}
-        className="h-10 rounded-full border border-white/10 bg-grafite pl-4 pr-9 text-sm text-creme focus:border-cobre/60 focus:outline-none"
+        className="h-10 min-w-0 max-w-[11rem] rounded-full border border-white/10 bg-grafite pl-4 pr-8 text-sm text-creme focus:border-cobre/60 focus:outline-none sm:max-w-none sm:pr-9"
       >
         {opcoes.map((o) => (
           <option key={o.valor} value={o.valor}>

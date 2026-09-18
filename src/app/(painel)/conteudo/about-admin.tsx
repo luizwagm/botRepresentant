@@ -120,13 +120,13 @@ export default function AboutAdmin() {
           <button
             type="button"
             onClick={() => setContent((c) => ({ ...DEFAULT_ABOUT, imageUrl: c.imageUrl }))}
-            className="rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800"
+            className="w-full rounded-md bg-amber-900 px-3 py-2.5 text-sm font-medium text-white hover:bg-amber-800 sm:w-auto sm:py-1.5 sm:text-xs"
           >
             Carregar texto padrão ROTA
           </button>
         </div>
       )}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="space-y-5">
           {/* Herói */}
           <div>
@@ -135,7 +135,7 @@ export default function AboutAdmin() {
               type="text"
               value={content.heroTitle}
               onChange={(e) => patch({ heroTitle: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               placeholder="ex.: A rota entre as fábricas do Agreste e a sua loja"
             />
           </div>
@@ -145,7 +145,7 @@ export default function AboutAdmin() {
               value={content.heroSubtitle}
               onChange={(e) => patch({ heroSubtitle: e.target.value })}
               rows={2}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               placeholder="Uma frase curta que resume o negócio."
             />
           </div>
@@ -160,9 +160,11 @@ export default function AboutAdmin() {
                 <div className="group relative h-24 w-32 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={content.imageUrl} alt="" className="h-full w-full object-cover" />
+                  {/* Só esconde até o hover onde existe hover (mouse): no toque o
+                      group-hover nunca dispara e o ✕ ficava invisível. */}
                   <button
                     onClick={() => patch({ imageUrl: null })}
-                    className="absolute right-1 top-1 rounded bg-red-600 px-1 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                    className="absolute right-1 top-1 rounded bg-red-600 px-3 py-2 text-xs text-white transition group-hover:opacity-100 sm:px-1 sm:py-0 [@media(hover:hover)]:opacity-0"
                   >
                     ✕
                   </button>
@@ -189,8 +191,8 @@ export default function AboutAdmin() {
       </div>
 
       {/* Destaques */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h2 className="text-sm font-semibold text-zinc-900">Diferenciais</h2>
           <span className="text-xs text-zinc-400">Aparecem como cards ao lado da história</span>
         </div>
@@ -203,12 +205,12 @@ export default function AboutAdmin() {
                   value={h.title}
                   onChange={(e) => updateHighlight(i, { title: e.target.value })}
                   placeholder="Título (ex.: Fábrica própria)"
-                  className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="min-w-0 flex-1 rounded-md border border-zinc-300 px-3 py-2 text-base font-medium focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => removeHighlight(i)}
-                  className="rounded-md bg-red-50 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100"
+                  className="shrink-0 rounded-md bg-red-50 px-2 py-3 text-xs font-medium text-red-700 hover:bg-red-100 sm:py-2"
                 >
                   Remover
                 </button>
@@ -218,14 +220,14 @@ export default function AboutAdmin() {
                 onChange={(e) => updateHighlight(i, { description: e.target.value })}
                 rows={2}
                 placeholder="Descrição curta do diferencial."
-                className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
             </div>
           ))}
           <button
             type="button"
             onClick={addHighlight}
-            className="rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:border-indigo-400 hover:text-indigo-600"
+            className="w-full rounded-md border border-dashed border-zinc-300 px-3 py-2.5 text-sm font-medium text-zinc-600 hover:border-indigo-400 hover:text-indigo-600 sm:w-auto sm:py-2"
           >
             + Adicionar diferencial
           </button>
@@ -233,8 +235,8 @@ export default function AboutAdmin() {
       </div>
 
       {/* Stats */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h2 className="text-sm font-semibold text-zinc-900">Barra de destaques</h2>
           <span className="text-xs text-zinc-400">Ex.: &ldquo;12 anos&rdquo; · &ldquo;de fábrica&rdquo;</span>
         </div>
@@ -246,19 +248,19 @@ export default function AboutAdmin() {
                 value={s.value}
                 onChange={(e) => updateStat(i, { value: e.target.value })}
                 placeholder="Número/destaque"
-                className="w-40 rounded-md border border-zinc-300 px-3 py-2 text-sm font-semibold focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base font-semibold focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-40 sm:text-sm"
               />
               <input
                 type="text"
                 value={s.label}
                 onChange={(e) => updateStat(i, { label: e.target.value })}
                 placeholder="Descrição"
-                className="min-w-[160px] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="min-w-[160px] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() => removeStat(i)}
-                className="rounded-md bg-red-50 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100"
+                className="shrink-0 rounded-md bg-red-50 px-2 py-3 text-xs font-medium text-red-700 hover:bg-red-100 sm:py-2"
               >
                 Remover
               </button>
@@ -267,7 +269,7 @@ export default function AboutAdmin() {
           <button
             type="button"
             onClick={addStat}
-            className="rounded-md border border-dashed border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-600 hover:border-indigo-400 hover:text-indigo-600"
+            className="w-full rounded-md border border-dashed border-zinc-300 px-3 py-2.5 text-sm font-medium text-zinc-600 hover:border-indigo-400 hover:text-indigo-600 sm:w-auto sm:py-2"
           >
             + Adicionar destaque
           </button>
@@ -277,14 +279,15 @@ export default function AboutAdmin() {
       {/* Ações */}
       {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       {okMsg && <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{okMsg}</div>}
-      <div className="flex items-center justify-between gap-2">
-        <Link href="/sobre" target="_blank" className="text-sm text-indigo-600 hover:underline">
+      {/* No celular: Salvar em largura total por cima, link embaixo. */}
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+        <Link href="/sobre" target="_blank" className="py-2 text-center text-sm text-indigo-600 hover:underline sm:py-0 sm:text-left">
           Ver página pública ↗
         </Link>
         <button
           onClick={save}
           disabled={saving || uploading}
-          className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="w-full rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-2"
         >
           {saving ? "Salvando..." : "Salvar alterações"}
         </button>

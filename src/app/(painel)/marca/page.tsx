@@ -32,7 +32,7 @@ const ARQUIVOS = [
 
 export default function MarcaPage() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">Identidade da marca</h1>
         <p className="mt-1 text-sm text-zinc-500">ROTA Atacado — moda que conecta negócios.</p>
@@ -40,8 +40,11 @@ export default function MarcaPage() {
 
       <LogoAdmin />
 
-      {/* Logo nos dois fundos */}
-      <section className="grid gap-4 sm:grid-cols-2">
+      {/* Logo nos dois fundos. O grid-cols-1 explícito (minmax(0,1fr)) importa:
+          sem ele a coluna implícita é "auto" e cresce até a largura mínima do
+          cartão creme (logo xl de ~271px + p-10), fazendo a página rolar de lado
+          em telas de 320–375px. */}
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="relative isolate flex min-h-56 items-center justify-center overflow-hidden rounded-2xl bg-asfalto p-10">
           <Estrada className="absolute inset-x-0 bottom-0 -z-10 h-full w-full opacity-30" intensidade={0.6} />
           <BrandLogo size="xl" />
@@ -49,14 +52,14 @@ export default function MarcaPage() {
         <div className="flex min-h-56 items-center justify-center rounded-2xl border border-zinc-200 bg-[#efe7dd] p-10">
           <BrandLogo size="xl" tone="claro" />
         </div>
-        <div className="flex items-center justify-center gap-8 rounded-2xl bg-asfalto p-8">
+        <div className="flex items-center justify-center gap-5 rounded-2xl bg-asfalto p-6 sm:gap-8 sm:p-8">
           <BrandLogo variant="mark" size="lg" />
           <p className="max-w-[14rem] text-xs leading-relaxed text-nevoa">
             O símbolo é o <strong className="text-creme-2">R</strong> com a estrada de cobre na perna — use em
             avatar, ícone e selo.
           </p>
         </div>
-        <div className="flex items-center justify-center gap-8 rounded-2xl border border-zinc-200 bg-white p-8">
+        <div className="flex items-center justify-center gap-5 rounded-2xl border border-zinc-200 bg-white p-6 sm:gap-8 sm:p-8">
           <BrandLogo variant="mark" size="lg" tone="claro" />
           <p className="max-w-[14rem] text-xs leading-relaxed text-zinc-500">
             Em fundo claro, o creme vira tinta escura e o cobre se mantém.
@@ -119,10 +122,10 @@ export default function MarcaPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 download
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm hover:border-[#c89775]"
+                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm hover:border-[#c89775]"
               >
                 {a.rotulo}
-                <span className="text-xs text-zinc-400">baixar ↓</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-zinc-400">baixar ↓</span>
               </a>
             </li>
           ))}

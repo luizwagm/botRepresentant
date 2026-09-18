@@ -95,7 +95,7 @@ export default function RichTextEditor({
             title={t.title}
             onMouseDown={(e) => e.preventDefault()} // mantém o foco/seleção no editor
             onClick={() => applyCommand(t.cmd)}
-            className="rounded px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200"
+            className="min-h-10 min-w-10 rounded px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 sm:min-h-auto sm:min-w-auto"
           >
             {t.label}
           </button>
@@ -110,7 +110,7 @@ export default function RichTextEditor({
         aria-label="Descrição do produto"
         onInput={(e) => onChange(readHtml(e.currentTarget))}
         data-placeholder={placeholder ?? ""}
-        className="rich-text min-h-[130px] w-full px-3 py-2 text-sm text-zinc-800 focus:outline-none empty:before:text-zinc-400 empty:before:content-[attr(data-placeholder)]"
+        className="rich-text min-h-[130px] w-full break-words px-3 py-2 text-sm text-zinc-800 focus:outline-none empty:before:text-zinc-400 empty:before:content-[attr(data-placeholder)]"
       />
     </div>
   );

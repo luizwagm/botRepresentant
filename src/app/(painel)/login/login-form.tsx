@@ -35,7 +35,7 @@ export default function LoginForm() {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
+      className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
     >
       <div className="mb-6">
         <BrandLogo variant="full" size="md" tone="claro" />
@@ -54,7 +54,8 @@ export default function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoFocus
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-[#9a6c4e] focus:outline-none focus:ring-1 focus:ring-[#9a6c4e]"
+          // 16px no celular: abaixo disso o Safari do iPhone dá zoom ao focar o campo.
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-[#9a6c4e] focus:outline-none focus:ring-1 focus:ring-[#9a6c4e] sm:text-sm"
         />
       </label>
 
@@ -65,7 +66,7 @@ export default function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-[#9a6c4e] focus:outline-none focus:ring-1 focus:ring-[#9a6c4e]"
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-[#9a6c4e] focus:outline-none focus:ring-1 focus:ring-[#9a6c4e] sm:text-sm"
         />
       </label>
 

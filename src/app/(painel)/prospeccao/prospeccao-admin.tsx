@@ -191,7 +191,7 @@ export default function ProspeccaoAdmin() {
         <button
           onClick={() => toggleAutomacao(!settings?.enabled)}
           disabled={!settings}
-          className={`rounded-md px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+          className={`w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:w-auto sm:py-2 ${
             settings?.enabled ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
           }`}
         >
@@ -210,35 +210,39 @@ export default function ProspeccaoAdmin() {
           </div>
           <button
             onClick={() => setAba("conexao")}
-            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+            className="w-full rounded-md bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 sm:w-auto sm:py-2"
           >
             Abrir conexão
           </button>
         </div>
       )}
 
-      {/* Abas */}
-      <div className="flex gap-1 border-b border-zinc-200">
-        {(
-          [
-            ["conversas", "Conversas"],
-            ["agendar", "Agendar contatos"],
-            ["conexao", "Conexão"],
-            ["config", "Vendedor de IA"],
-          ] as const
-        ).map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setAba(k)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
-              aba === k
-                ? "border-indigo-600 text-indigo-700"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Abas. As 4 somam ~480px: no celular a faixa rola de lado sozinha
+          (colada na borda da tela), em vez de empurrar a página. A borda fica
+          no div interno pra o -mb-px das abas não vazar do contêiner rolável. */}
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="flex min-w-max gap-1 border-b border-zinc-200">
+          {(
+            [
+              ["conversas", "Conversas"],
+              ["agendar", "Agendar contatos"],
+              ["conexao", "Conexão"],
+              ["config", "Vendedor de IA"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setAba(k)}
+              className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition sm:px-4 sm:py-2 ${
+                aba === k
+                  ? "border-indigo-600 text-indigo-700"
+                  : "border-transparent text-zinc-500 hover:text-zinc-800"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {aba === "conversas" && <Conversas />}
@@ -295,11 +299,13 @@ function Conversas() {
 
   return (
     <div className="space-y-4">
+      {/* text-base no celular: abaixo de 16px o iPhone dá zoom ao focar o campo
+          e a página fica rolando de lado. */}
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-base sm:flex-initial sm:text-sm"
         >
           <option value="">Todos os status</option>
           {CONVERSATION_STATUSES.map((s) => (
@@ -310,7 +316,7 @@ function Conversas() {
         </select>
         <button
           onClick={() => void load()}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium hover:bg-zinc-50 sm:py-2"
         >
           Atualizar
         </button>
@@ -322,9 +328,13 @@ function Conversas() {
           Nenhuma conversa ainda. Agende contatos na aba ao lado.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+        // Abaixo de md a tabela vira cartões (mesmo markup, só display): as 5
+        // colunas pedem ~730px, então no celular o overflow-hidden cortava IA e
+        // Próxima ação. Os rótulos "md:hidden" repetem o cabeçalho, que some.
+        // md (e não sm) porque entre 640 e 767px a tabela ainda não cabe.
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <table className="block min-w-full divide-y divide-zinc-200 text-sm md:table">
+            <thead className="hidden bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 md:table-header-group">
               <tr>
                 <th className="px-4 py-3">Loja</th>
                 <th className="px-4 py-3">Status</th>
@@ -333,16 +343,20 @@ function Conversas() {
                 <th className="px-4 py-3">Próxima ação</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="block divide-y divide-zinc-100 md:table-row-group">
               {items.map((c) => (
-                <tr key={c.id} onClick={() => void abrir(c.id)} className="cursor-pointer hover:bg-indigo-50/50">
-                  <td className="px-4 py-3">
+                <tr
+                  key={c.id}
+                  onClick={() => void abrir(c.id)}
+                  className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-2 p-4 hover:bg-indigo-50/50 md:table-row md:p-0"
+                >
+                  <td className="break-words md:px-4 md:py-3">
                     <div className="font-medium text-zinc-900">{c.lead.name}</div>
                     <div className="text-xs text-zinc-500">
                       {c.lead.city}/{c.lead.state} · {c.messageCount} msg
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="break-words md:px-4 md:py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${CONVERSATION_STATUS_COLOR[c.status]}`}
                     >
@@ -350,7 +364,7 @@ function Conversas() {
                     </span>
                     {c.owner && <div className="mt-1 text-[11px] text-zinc-500">{c.owner}</div>}
                   </td>
-                  <td className="max-w-xs px-4 py-3">
+                  <td className="col-span-2 md:max-w-xs md:px-4 md:py-3">
                     {c.lastMessage ? (
                       <div className="truncate text-xs text-zinc-600">
                         <span className={c.lastMessage.direction === "ENTRADA" ? "text-amber-700" : "text-zinc-400"}>
@@ -362,12 +376,16 @@ function Conversas() {
                       <span className="text-xs text-zinc-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="md:px-4 md:py-3">
+                    <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 md:hidden">IA</span>
                     <span className={`text-xs font-medium ${c.aiEnabled ? "text-emerald-700" : "text-zinc-400"}`}>
                       {c.aiEnabled ? "ligada" : "desligada"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-600">{fmt(c.nextActionAt)}</td>
+                  <td className="text-xs text-zinc-600 md:px-4 md:py-3">
+                    <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wider text-zinc-400 md:hidden">Próxima ação</span>
+                    {fmt(c.nextActionAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -392,12 +410,14 @@ function ConversaModal({
   const wa = conv.lead.whatsapp;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 p-4" onClick={onClose}>
+      {/* max-h-full no celular: 90vh usa a altura "sem barra do navegador" e,
+          centralizado, o topo com o ✕ ficava escondido atrás da barra. */}
       <div
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl"
+        className="flex max-h-full w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-zinc-200 px-6 py-4">
-          <div>
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-200 px-4 py-4 sm:px-6">
+          <div className="min-w-0 break-words">
             <h2 className="text-lg font-semibold">{conv.lead.name}</h2>
             <p className="mt-0.5 text-sm text-zinc-500">
               {conv.lead.city}/{conv.lead.state} ·{" "}
@@ -406,12 +426,16 @@ function ConversaModal({
               </span>
             </p>
           </div>
-          <button onClick={onClose} aria-label="Fechar" className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100">
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md p-1 text-zinc-400 hover:bg-zinc-100 sm:h-auto sm:w-auto"
+          >
             ✕
           </button>
         </div>
 
-        <div className="flex-1 space-y-2 overflow-y-auto bg-zinc-50 px-6 py-4">
+        <div className="flex-1 space-y-2 overflow-y-auto bg-zinc-50 px-4 py-4 sm:px-6">
           {conv.messages.length === 0 && <p className="text-sm text-zinc-500">Nenhuma mensagem ainda.</p>}
           {conv.messages.map((m) => (
             <div key={m.id} className={`flex ${m.direction === "SAIDA" ? "justify-end" : "justify-start"}`}>
@@ -444,18 +468,20 @@ function ConversaModal({
           ))}
         </div>
 
-        <div className="space-y-3 border-t border-zinc-200 px-6 py-4">
+        <div className="space-y-3 border-t border-zinc-200 px-4 py-4 sm:px-6">
           <p className="text-xs text-zinc-500">
             Para responder, escreva pelo WhatsApp do celular — o sistema registra sua mensagem e desliga a IA
             desta conversa automaticamente.
           </p>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* No celular os botões empilham em largura total: lado a lado eles
+              quebravam em linhas tortas, cada uma com uma largura. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             {wa && (
               <a
                 href={`https://wa.me/${wa}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                className="rounded-md bg-emerald-600 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-emerald-700 sm:py-2"
               >
                 Abrir no WhatsApp
               </a>
@@ -464,13 +490,13 @@ function ConversaModal({
               <>
                 <button
                   onClick={() => void onAcao(conv.id, "desligar_ia")}
-                  className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
+                  className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-zinc-50 sm:py-2"
                 >
                   Desligar IA
                 </button>
                 <button
                   onClick={() => void onAcao(conv.id, "assumir")}
-                  className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                  className="rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 sm:py-2"
                 >
                   Assumir conversa
                 </button>
@@ -478,7 +504,7 @@ function ConversaModal({
             ) : (
               <button
                 onClick={() => void onAcao(conv.id, "ligar_ia")}
-                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                className="rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 sm:py-2"
               >
                 Religar IA
               </button>
@@ -538,12 +564,12 @@ function Conexao({ info, onRefresh }: { info: ChannelInfo | null; onRefresh: () 
   return (
     <div className="space-y-4">
       <div
-        className={`rounded-xl border p-5 shadow-sm ${
+        className={`rounded-xl border p-4 shadow-sm sm:p-5 ${
           conectado ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-white"
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0 break-words">
             <div className="flex items-center gap-2">
               <span
                 className={`inline-block h-2.5 w-2.5 rounded-full ${
@@ -573,7 +599,7 @@ function Conexao({ info, onRefresh }: { info: ChannelInfo | null; onRefresh: () 
             <button
               onClick={() => void desconectar()}
               disabled={desconectando}
-              className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+              className="w-full rounded-md border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 sm:w-auto sm:py-2"
             >
               {desconectando ? "Pedindo..." : "Desconectar / trocar número"}
             </button>
@@ -593,17 +619,19 @@ function Conexao({ info, onRefresh }: { info: ChannelInfo | null; onRefresh: () 
       )}
 
       {info.qrSvg && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center shadow-sm">
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 text-center shadow-sm sm:p-6">
           <h3 className="text-base font-semibold text-zinc-900">Conecte o número secundário</h3>
-          <ol className="mx-auto mt-2 max-w-md list-decimal space-y-0.5 text-left text-sm text-zinc-600">
+          <ol className="mx-auto mt-2 max-w-md list-decimal space-y-0.5 pl-5 text-left text-sm text-zinc-600 sm:pl-0">
             <li>Abra o WhatsApp no celular do número que fará a prospecção.</li>
             <li>
               Toque em <strong>Aparelhos conectados</strong> → <strong>Conectar aparelho</strong>.
             </li>
             <li>Aponte a câmera para o código abaixo.</li>
           </ol>
+          {/* QR de 224px no celular: com 256px + moldura ele passava da largura
+              do cartão em 320px e empurrava a página de lado. */}
           <div
-            className="mx-auto mt-4 w-fit rounded-lg bg-white p-2 ring-1 ring-zinc-200 [&>svg]:h-64 [&>svg]:w-64"
+            className="mx-auto mt-4 w-fit rounded-lg bg-white p-2 ring-1 ring-zinc-200 [&>svg]:h-56 [&>svg]:w-56 sm:[&>svg]:h-64 sm:[&>svg]:w-64"
             // O SVG vem do gerador de QR do próprio servidor (não é conteúdo de usuário).
             dangerouslySetInnerHTML={{ __html: info.qrSvg }}
           />
@@ -670,7 +698,7 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-sm font-semibold text-zinc-900">
             {d.pronto
               ? "Motor pronto para enviar"
@@ -700,14 +728,14 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
         </div>
         <button
           onClick={() => void load()}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-zinc-50"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-xs font-medium hover:bg-zinc-50 sm:py-1.5"
         >
           Atualizar
         </button>
       </div>
 
       {d.recusadas24h > 0 && (
-        <div className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="mt-3 break-words rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
           <strong>{d.recusadas24h} mensagem(ns) recusada(s) pelo WhatsApp nas últimas 24h.</strong>{" "}
           {d.ultimaRecusa ?? ""} Isso costuma significar que o número foi restringido para iniciar
           conversas novas. Pare os disparos, use o número normalmente por alguns dias e reduza o
@@ -718,9 +746,13 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
       {d.impedimentos.length > 0 && (
         <ul className="mt-3 space-y-1 border-t border-zinc-200/70 pt-3">
           {d.impedimentos.map((m) => (
-            <li key={m} className="flex flex-wrap items-center gap-2 text-sm text-zinc-800">
+            <li key={m} className="flex flex-wrap items-start gap-2 text-sm text-zinc-800 sm:items-center">
               <span aria-hidden>&#9888;</span>
-              <span>{MOTIVO_LABEL[m] ?? m}</span>
+              {/* O aviso do PUBLIC_BASE_URL tem "palavras" de ~270px (URL): sem
+                  min-w-0 + break-words ele estourava o cartão em 320px. O flex-1
+                  mantém o ⚠ na mesma linha do texto no celular (sem ele o texto
+                  longo caía para a linha de baixo e o ícone ficava sozinho). */}
+              <span className="min-w-0 flex-1 break-words sm:flex-initial">{MOTIVO_LABEL[m] ?? m}</span>
               {m === "automacao_desligada" && onLigar && (
                 <button
                   onClick={async () => {
@@ -730,7 +762,7 @@ function DiagnosticoFila({ onLigar }: { onLigar?: () => Promise<void> }) {
                     setLigando(false);
                   }}
                   disabled={ligando}
-                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="rounded-md bg-emerald-600 px-3 py-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 sm:py-1"
                 >
                   {ligando ? "Ligando..." : "Ligar agora"}
                 </button>
@@ -929,7 +961,7 @@ function Agendar({
     <div className="space-y-6">
       <DiagnosticoFila onLigar={onLigar} />
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="text-base font-semibold">1. Escolha as lojas</h2>
         <p className="mt-0.5 mb-3 text-xs text-zinc-500">
           Estas são as lojas que você já captou em <strong>Leads</strong>. Só aparecem as que têm
@@ -944,7 +976,7 @@ function Agendar({
               if (e.key === "Enter") void buscarLeads();
             }}
             placeholder="Nome da loja..."
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm lg:col-span-2"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm lg:col-span-2"
           />
           <select
             value={state}
@@ -952,7 +984,7 @@ function Agendar({
               setState(e.target.value);
               setCity("");
             }}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base sm:text-sm"
           >
             <option value="">UF (todas)</option>
             {BR_STATES.map((s) => (
@@ -963,7 +995,7 @@ function Agendar({
             value={city}
             onChange={(e) => setCity(e.target.value)}
             disabled={!state}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm disabled:bg-zinc-50"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base disabled:bg-zinc-50 sm:text-sm"
           >
             <option value="">{state ? "Cidade (todas)" : "Escolha a UF"}</option>
             {cidades.map((c) => (
@@ -973,7 +1005,7 @@ function Agendar({
           <select
             value={etapa}
             onChange={(e) => setEtapa(e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base sm:text-sm"
           >
             <option value="">Etapa (todas)</option>
             {FUNNEL_STAGES.map((s) => (
@@ -983,7 +1015,7 @@ function Agendar({
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base sm:text-sm"
           >
             <option value="">Tipo (todos)</option>
             {STORE_TYPES.map((t) => (
@@ -1023,7 +1055,7 @@ function Agendar({
           <button
             onClick={() => void buscarLeads()}
             disabled={buscando}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-2"
           >
             {buscando ? "Buscando..." : "Buscar nas minhas lojas"}
           </button>
@@ -1031,11 +1063,14 @@ function Agendar({
             <>
               <button
                 onClick={() => setSel(new Set(disponiveis.map((l) => l.id)))}
-                className="text-xs font-medium text-indigo-600 hover:underline"
+                className="min-h-10 text-xs font-medium text-indigo-600 hover:underline sm:min-h-0"
               >
                 Selecionar as {disponiveis.length} disponíveis
               </button>
-              <button onClick={() => setSel(new Set())} className="text-xs font-medium text-zinc-500 hover:underline">
+              <button
+                onClick={() => setSel(new Set())}
+                className="min-h-10 text-xs font-medium text-zinc-500 hover:underline sm:min-h-0"
+              >
                 Limpar
               </button>
             </>
@@ -1063,7 +1098,7 @@ function Agendar({
               return (
                 <label
                   key={l.id}
-                  className={`flex items-center gap-2 border-b border-zinc-100 px-3 py-2 text-sm last:border-0 ${
+                  className={`flex items-start gap-2 border-b border-zinc-100 px-3 py-2 text-sm last:border-0 sm:items-center ${
                     travado ? "cursor-not-allowed bg-zinc-50/70" : "cursor-pointer hover:bg-zinc-50"
                   }`}
                 >
@@ -1077,26 +1112,30 @@ function Agendar({
                       else next.delete(l.id);
                       setSel(next);
                     }}
-                    className="h-4 w-4 rounded border-zinc-300 text-indigo-600 disabled:opacity-40"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-indigo-600 disabled:opacity-40 sm:mt-0"
                   />
-                  <span className={`font-medium ${travado ? "text-zinc-400" : "text-zinc-800"}`}>
-                    {l.name}
-                  </span>
-                  <span className="text-xs text-zinc-500">
-                    {l.city}/{l.state}
-                  </span>
-                  <span className="ml-auto flex items-center gap-2">
-                    {l.bloqueio && (
-                      <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
-                        {l.bloqueio}
-                        {l.agendadoPara ? ` · ${fmt(l.agendadoPara)}` : ""}
-                      </span>
-                    )}
-                    {!l.bloqueio && (
-                      <span className="text-[10px] text-zinc-400">
-                        {FUNNEL_STAGE_LABEL[l.funnelStage as keyof typeof FUNNEL_STAGE_LABEL] ?? l.funnelStage}
-                      </span>
-                    )}
+                  {/* No celular nome, cidade e etapa quebram linha alinhados depois
+                      do checkbox; sem wrap eles se espremiam palavra por palavra. */}
+                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 sm:flex-nowrap">
+                    <span className={`min-w-0 break-words font-medium ${travado ? "text-zinc-400" : "text-zinc-800"}`}>
+                      {l.name}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {l.city}/{l.state}
+                    </span>
+                    <span className="ml-auto flex items-center gap-2">
+                      {l.bloqueio && (
+                        <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                          {l.bloqueio}
+                          {l.agendadoPara ? ` · ${fmt(l.agendadoPara)}` : ""}
+                        </span>
+                      )}
+                      {!l.bloqueio && (
+                        <span className="text-[10px] text-zinc-400">
+                          {FUNNEL_STAGE_LABEL[l.funnelStage as keyof typeof FUNNEL_STAGE_LABEL] ?? l.funnelStage}
+                        </span>
+                      )}
+                    </span>
                   </span>
                 </label>
               );
@@ -1105,7 +1144,7 @@ function Agendar({
         )}
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="mb-3 text-base font-semibold">2. Quando enviar</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
@@ -1114,7 +1153,7 @@ function Agendar({
               type="datetime-local"
               value={quando}
               onChange={(e) => setQuando(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
             {avisoJanela && <p className="mt-1 text-xs text-amber-700">{avisoJanela}</p>}
           </div>
@@ -1125,7 +1164,7 @@ function Agendar({
               value={nota}
               onChange={(e) => setNota(e.target.value)}
               placeholder="ex.: lojas de Caruaru — lote da manhã"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
           </div>
         </div>
@@ -1135,7 +1174,7 @@ function Agendar({
           <button
             onClick={() => void agendar()}
             disabled={salvando}
-            className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-2"
           >
             {salvando ? "Agendando..." : `Agendar ${sel.size} contato(s)`}
           </button>
@@ -1154,9 +1193,12 @@ function Agendar({
             Nenhum agendamento ainda.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-zinc-200 text-sm">
-              <thead className="bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+          // Abaixo de sm cada lote vira um cartão (mesmo markup, só display):
+          // data e "Cancelar fila" na 1ª linha, observação e andamento embaixo.
+          // Antes o overflow-hidden cortava a coluna do botão no celular.
+          <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <table className="block min-w-full divide-y divide-zinc-200 text-sm sm:table">
+              <thead className="hidden bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-header-group">
                 <tr>
                   <th className="px-4 py-3">Quando</th>
                   <th className="px-4 py-3">Observação</th>
@@ -1164,26 +1206,26 @@ function Agendar({
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="block divide-y divide-zinc-100 sm:table-row-group">
                 {batches.map((b) => (
                   <Fragment key={b.id}>
                   <tr
                     onClick={() => void abrirLote(b)}
-                    className="cursor-pointer hover:bg-indigo-50/40"
+                    className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 p-4 hover:bg-indigo-50/40 sm:table-row sm:p-0"
                     title="Ver o que aconteceu com cada loja"
                   >
-                    <td className="px-4 py-3 text-zinc-800">
+                    <td className="text-zinc-800 sm:px-4 sm:py-3">
                       <span className="mr-1 text-zinc-400">{loteAberto === b.id ? "▾" : "▸"}</span>
                       {fmt(b.scheduledFor)}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{b.note ?? <span className="text-zinc-400">—</span>}</td>
-                    <td className="px-4 py-3 text-xs text-zinc-600">
+                    <td className="col-span-2 break-words text-zinc-600 sm:px-4 sm:py-3">{b.note ?? <span className="text-zinc-400">—</span>}</td>
+                    <td className="col-span-2 text-xs text-zinc-600 sm:px-4 sm:py-3">
                       {b.counts.ENVIADO}/{b.total} enviados
                       {b.counts.PENDENTE > 0 && ` · ${b.counts.PENDENTE} na fila`}
                       {b.counts.FALHOU > 0 && ` · ${b.counts.FALHOU} falharam`}
                       {b.counts.CANCELADO > 0 && ` · ${b.counts.CANCELADO} cancelados`}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="col-start-2 row-start-1 text-right sm:px-4 sm:py-3">
                       {b.counts.PENDENTE > 0 ? (
                         <button
                           onClick={(e) => {
@@ -1191,7 +1233,7 @@ function Agendar({
                             void cancelarLote(b);
                           }}
                           title={`Cancelar os ${b.counts.PENDENTE} contatos que ainda não saíram`}
-                          className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                          className="rounded-md bg-red-50 px-3 py-3 text-xs font-medium text-red-700 hover:bg-red-100 sm:py-1.5"
                         >
                           Cancelar fila
                         </button>
@@ -1201,8 +1243,8 @@ function Agendar({
                     </td>
                   </tr>
                   {loteAberto === b.id && (
-                    <tr>
-                      <td colSpan={4} className="bg-zinc-50 px-4 py-3">
+                    <tr className="block sm:table-row">
+                      <td colSpan={4} className="block bg-zinc-50 px-4 py-3 sm:table-cell">
                         {tarefas.length === 0 ? (
                           <div className="text-xs text-zinc-500">Carregando lojas do lote...</div>
                         ) : (
@@ -1222,12 +1264,12 @@ function Agendar({
                                 >
                                   {t.status === "PENDENTE" ? "na fila" : t.status.toLowerCase()}
                                 </span>
-                                <span className="font-medium text-zinc-800">{t.lead.name}</span>
+                                <span className="min-w-0 break-words font-medium text-zinc-800">{t.lead.name}</span>
                                 <span className="text-zinc-500">
                                   {t.lead.city}/{t.lead.state}
                                 </span>
                                 {t.erro && (
-                                  <span className="text-red-700">
+                                  <span className="min-w-0 break-words text-red-700">
                                     — {t.erro}
                                     {t.attempts > 1 && ` (${t.attempts} tentativas)`}
                                   </span>
@@ -1289,13 +1331,13 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h2 className="text-base font-semibold">Tom de voz</h2>
           <button
             type="button"
             onClick={() => patch({ tone: DEFAULT_TONE })}
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-300 px-2.5 py-2.5 text-xs text-zinc-600 hover:bg-zinc-50 sm:py-1"
           >
             Restaurar padrão ROTA
           </button>
@@ -1306,17 +1348,17 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
           value={form.tone}
           onChange={(e) => patch({ tone: e.target.value })}
           rows={10}
-          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-xs"
+          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-base sm:text-xs"
         />
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h2 className="text-base font-semibold">Ideia de roteiro</h2>
           <button
             type="button"
             onClick={() => patch({ scriptGuidance: DEFAULT_SCRIPT })}
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-300 px-2.5 py-2.5 text-xs text-zinc-600 hover:bg-zinc-50 sm:py-1"
           >
             Restaurar padrão ROTA
           </button>
@@ -1327,11 +1369,11 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
           value={form.scriptGuidance}
           onChange={(e) => patch({ scriptGuidance: e.target.value })}
           rows={12}
-          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-xs"
+          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-base sm:text-xs"
         />
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm">
+      <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm sm:p-6">
         <h2 className="text-base font-semibold text-amber-900">Travas de envio</h2>
         <p className="mt-1 text-xs text-amber-800">
           Volume alto, horário ruim e ritmo robótico são o que mais queima número no WhatsApp. Comece devagar
@@ -1345,7 +1387,7 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
               min={1}
               value={form.dailyCap}
               onChange={(e) => patch({ dailyCap: Number(e.target.value) })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
           </Campo>
           <Campo label="Intervalo mínimo (seg)">
@@ -1354,7 +1396,7 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
               min={5}
               value={form.minGapSeconds}
               onChange={(e) => patch({ minGapSeconds: Number(e.target.value) })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
           </Campo>
           <Campo label="Intervalo máximo (seg)">
@@ -1363,7 +1405,7 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
               min={5}
               value={form.maxGapSeconds}
               onChange={(e) => patch({ maxGapSeconds: Number(e.target.value) })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
           </Campo>
           <Campo label="Enviar a partir das">
@@ -1373,7 +1415,7 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
               max={23}
               value={form.windowStartHour}
               onChange={(e) => patch({ windowStartHour: Number(e.target.value) })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
           </Campo>
           <Campo label="Enviar até as">
@@ -1383,11 +1425,11 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
               max={24}
               value={form.windowEndHour}
               onChange={(e) => patch({ windowEndHour: Number(e.target.value) })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base sm:text-sm"
             />
           </Campo>
           <div className="flex items-end">
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <label className="flex min-h-10 items-center gap-2 text-sm text-zinc-700 sm:min-h-0">
               <input
                 type="checkbox"
                 checked={form.sendOnWeekends}
@@ -1405,7 +1447,7 @@ function Config({ settings, onSaved }: { settings: Settings; onSaved: (s: Settin
         <button
           onClick={() => void salvar()}
           disabled={salvando}
-          className="rounded-md bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="w-full rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-2"
         >
           {salvando ? "Salvando..." : "Salvar configuração"}
         </button>

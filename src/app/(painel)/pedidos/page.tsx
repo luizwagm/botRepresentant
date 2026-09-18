@@ -57,7 +57,7 @@ export default async function PedidosPage({ searchParams }: Props) {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Pedidos da loja</h1>
@@ -79,7 +79,7 @@ export default async function PedidosPage({ searchParams }: Props) {
               key={f.valor}
               href={f.valor === "TODOS" ? "/pedidos" : `/pedidos?status=${f.valor}`}
               aria-current={ativo ? "page" : undefined}
-              className={`rounded-full border px-3.5 py-1.5 text-sm ${
+              className={`rounded-full border px-3.5 py-2.5 text-sm sm:py-1.5 ${
                 ativo ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400"
               }`}
             >

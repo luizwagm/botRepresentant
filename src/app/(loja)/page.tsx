@@ -292,11 +292,11 @@ export default async function Inicio() {
                       />
                     )}
                     <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-asfalto/90 via-asfalto/20 to-transparent" />
-                    <span className="relative mt-auto flex w-full items-end justify-between gap-3 p-5 sm:p-6">
-                      <span>
+                    <span className="relative mt-auto flex w-full items-end justify-between gap-3 p-4 sm:p-6">
+                      <span className="min-w-0">
                         <span
-                          className={`block font-display font-medium tracking-[-0.02em] text-creme ${
-                            i === 0 ? "text-[clamp(1.6rem,3vw,2.6rem)]" : "text-[1.15rem] sm:text-[1.35rem]"
+                          className={`block break-words font-display font-medium tracking-[-0.02em] text-creme ${
+                            i === 0 ? "text-[clamp(1.6rem,3vw,2.6rem)]" : "text-[1.02rem] sm:text-[1.35rem]"
                           }`}
                         >
                           {c.label}
@@ -305,7 +305,12 @@ export default async function Inicio() {
                           {c.total} {c.total === 1 ? "modelo" : "modelos"}
                         </span>
                       </span>
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-creme/10 text-creme backdrop-blur-md transition-colors group-hover:bg-cobre group-hover:text-asfalto">
+                      {/* Nos cards pequenos do celular a seta não cabe ao lado do nome — o card inteiro já é o link. */}
+                      <span
+                        className={`h-10 w-10 shrink-0 items-center justify-center rounded-full bg-creme/10 text-creme backdrop-blur-md transition-colors group-hover:bg-cobre group-hover:text-asfalto ${
+                          i === 0 ? "flex" : "hidden sm:flex"
+                        }`}
+                      >
                         <IconeSeta className="h-4 w-4" />
                       </span>
                     </span>
@@ -519,7 +524,9 @@ function bento(i: number, n: number): string {
 function Numero({ valor, rotulo }: { valor: number; rotulo: string }) {
   return (
     <div className="flex flex-col-reverse gap-1">
-      <dt className="text-[0.72rem] uppercase leading-snug tracking-[0.16em] text-nevoa">{rotulo}</dt>
+      <dt className="text-[0.66rem] uppercase leading-snug tracking-[0.08em] text-nevoa sm:text-[0.72rem] sm:tracking-[0.16em]">
+        {rotulo}
+      </dt>
       <dd className="rota-num font-display text-[clamp(1.6rem,2.6vw,2.2rem)] font-medium leading-none text-creme">
         {valor}
       </dd>

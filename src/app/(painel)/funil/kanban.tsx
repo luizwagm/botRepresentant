@@ -97,8 +97,14 @@ export default function Kanban() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
+        {/* No celular o quadro sangra ate a borda da tela (-mx-4 anula o px-4
+            da pagina) pra coluna nao aparecer cortada no meio do gutter; a
+            rolagem lateral fica so aqui dentro, nunca na pagina. O respiro
+            de 16px vai na faixa interna (nao no conteiner que rola) porque
+            alguns navegadores (Safari) ignoram o padding da direita de bloco
+            com overflow e a ultima coluna colaria na borda. */}
+        <div className="-mx-4 overflow-x-auto pb-4 sm:mx-0">
+          <div className="flex gap-4 min-w-max px-4 sm:px-0">
             {COLUMNS.map((stage) => {
               const items = leads.filter((l) => l.funnelStage === stage);
               return (
@@ -155,7 +161,7 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`w-72 flex-shrink-0 rounded-lg bg-zinc-100/70 p-3 transition ${isOver ? "ring-2 ring-indigo-400 bg-indigo-50/60" : ""}`}
+      className={`w-64 sm:w-72 flex-shrink-0 rounded-lg bg-zinc-100/70 p-3 transition ${isOver ? "ring-2 ring-indigo-400 bg-indigo-50/60" : ""}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${FUNNEL_STAGE_COLOR[stage]}`}>
@@ -223,7 +229,7 @@ function Card({
 
 function CardPreview({ lead }: { lead: Lead }) {
   return (
-    <div className="cursor-grabbing rounded-md bg-white border border-indigo-300 p-3 shadow-xl w-72 rotate-2">
+    <div className="cursor-grabbing rounded-md bg-white border border-indigo-300 p-3 shadow-xl w-64 sm:w-72 rotate-2">
       <div className="font-medium text-sm text-zinc-900">{lead.name}</div>
       <div className="mt-1 text-xs text-zinc-500">{lead.city}/{lead.state}</div>
     </div>

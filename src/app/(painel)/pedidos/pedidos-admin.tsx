@@ -97,11 +97,13 @@ export default function PedidosAdmin({ pedidos }: { pedidos: PedidoPainel[] }) {
               type="button"
               onClick={() => setAberto(expandido ? null : p.id)}
               aria-expanded={expandido}
-              className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4 text-left hover:bg-zinc-50"
+              className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-4 text-left hover:bg-zinc-50 sm:px-5"
             >
               <span className="font-mono text-sm font-semibold text-zinc-900">{p.codigo}</span>
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${COR[p.status]}`}>{ROTULO[p.status]}</span>
-              <span className="min-w-0 flex-1 truncate font-medium text-zinc-800">
+              {/* No celular a loja ganha linha própria: com flex-1 (base 0) ela
+                  espremia ao lado do código+status e virava "Lo…". */}
+              <span className="min-w-0 basis-full truncate font-medium text-zinc-800 sm:flex-1">
                 {p.loja}
                 <span className="font-normal text-zinc-500">
                   {" "}
@@ -119,66 +121,70 @@ export default function PedidosAdmin({ pedidos }: { pedidos: PedidoPainel[] }) {
             </button>
 
             {expandido && (
-              <div className="border-t border-zinc-100 px-5 py-5">
+              <div className="border-t border-zinc-100 px-4 py-5 sm:px-5">
                 <div className="grid gap-6 lg:grid-cols-3">
-                  <div className="lg:col-span-2">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500">
-                          <th className="py-2 pr-3 font-medium">Peça</th>
-                          <th className="py-2 pr-3 font-medium">Grade</th>
-                          <th className="py-2 pr-3 text-right font-medium">Peças</th>
-                          <th className="py-2 text-right font-medium">Preço/pç</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {p.itens.map((i, n) => (
-                          <tr key={n} className="border-b border-zinc-100 align-top">
-                            <td className="py-2.5 pr-3">
-                              {i.produtoId ? (
-                                <a href={`/produto/${i.produtoId}`} target="_blank" className="font-medium text-zinc-900 hover:underline">
-                                  {i.nome}
-                                </a>
-                              ) : (
-                                <span className="font-medium">{i.nome}</span>
-                              )}
-                              {i.cor && <div className="text-xs text-zinc-500">{i.cor}</div>}
-                            </td>
-                            <td className="py-2.5 pr-3 text-zinc-700">
-                              {Object.entries(i.grade)
-                                .map(([t, q]) => (t === TAMANHO_UNICO ? `${q}` : `${t}: ${q}`))
-                                .join(" · ")}
-                            </td>
-                            <td className="py-2.5 pr-3 text-right tabular-nums">{i.pecas}</td>
-                            <td className="py-2.5 text-right tabular-nums text-zinc-600">{faixaPreco(i.precoMin, i.precoMax)}</td>
+                  <div className="min-w-0 lg:col-span-2">
+                    {/* Em 320px as 4 colunas (com o total em R$) passam da largura
+                        do card: a tabela rola dentro dela, nunca a página. */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500">
+                            <th className="py-2 pr-3 font-medium">Peça</th>
+                            <th className="py-2 pr-3 font-medium">Grade</th>
+                            <th className="py-2 pr-3 text-right font-medium">Peças</th>
+                            <th className="py-2 text-right font-medium">Preço/pç</th>
                           </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <td className="pt-3 font-medium" colSpan={2}>
-                            Total
-                          </td>
-                          <td className="pt-3 text-right font-semibold tabular-nums">{p.totalPecas}</td>
-                          <td className="pt-3 text-right tabular-nums text-zinc-700">
-                            {p.estimativaMax !== null && p.estimativaMin !== null
-                              ? p.estimativaMin === p.estimativaMax
-                                ? dinheiro(p.estimativaMin)
-                                : `${dinheiro(p.estimativaMin)} – ${dinheiro(p.estimativaMax)}`
-                              : "—"}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {p.itens.map((i, n) => (
+                            <tr key={n} className="border-b border-zinc-100 align-top">
+                              <td className="py-2.5 pr-3">
+                                {i.produtoId ? (
+                                  <a href={`/produto/${i.produtoId}`} target="_blank" className="font-medium text-zinc-900 hover:underline">
+                                    {i.nome}
+                                  </a>
+                                ) : (
+                                  <span className="font-medium">{i.nome}</span>
+                                )}
+                                {i.cor && <div className="text-xs text-zinc-500">{i.cor}</div>}
+                              </td>
+                              <td className="py-2.5 pr-3 text-zinc-700">
+                                {Object.entries(i.grade)
+                                  .map(([t, q]) => (t === TAMANHO_UNICO ? `${q}` : `${t}: ${q}`))
+                                  .join(" · ")}
+                              </td>
+                              <td className="py-2.5 pr-3 text-right tabular-nums">{i.pecas}</td>
+                              <td className="py-2.5 text-right tabular-nums text-zinc-600">{faixaPreco(i.precoMin, i.precoMax)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td className="pt-3 font-medium" colSpan={2}>
+                              Total
+                            </td>
+                            <td className="pt-3 text-right font-semibold tabular-nums">{p.totalPecas}</td>
+                            <td className="pt-3 text-right tabular-nums text-zinc-700">
+                              {p.estimativaMax !== null && p.estimativaMin !== null
+                                ? p.estimativaMin === p.estimativaMax
+                                  ? dinheiro(p.estimativaMin)
+                                  : `${dinheiro(p.estimativaMin)} – ${dinheiro(p.estimativaMax)}`
+                                : "—"}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
                     {p.observacoes && (
-                      <p className="mt-4 whitespace-pre-line rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      <p className="mt-4 whitespace-pre-line break-words rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
                         <span className="font-medium">Obs.: </span>
                         {p.observacoes}
                       </p>
                     )}
                   </div>
 
-                  <aside className="space-y-4 text-sm">
+                  <aside className="min-w-0 space-y-4 break-words text-sm">
                     <dl className="space-y-1.5">
                       <div>
                         <dt className="inline text-zinc-500">Loja: </dt>
@@ -230,7 +236,7 @@ export default function PedidosAdmin({ pedidos }: { pedidos: PedidoPainel[] }) {
                         value={p.status}
                         disabled={salvando === p.id}
                         onChange={(e) => mudarStatus(p.id, e.target.value as OrderStatus)}
-                        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2"
+                        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base sm:text-sm"
                       >
                         {(Object.keys(ROTULO) as OrderStatus[]).map((s) => (
                           <option key={s} value={s}>

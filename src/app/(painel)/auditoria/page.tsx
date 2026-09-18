@@ -9,7 +9,7 @@ export default async function AuditoriaPage() {
   if (!me || me.role !== "ADMIN") redirect("/painel");
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
         <p className="mt-1 text-sm text-zinc-500">

@@ -107,7 +107,7 @@ export default function Vitrine({
             <label htmlFor="rota-busca-vitrine" className="sr-only">
               Buscar {categoriaAtual ? `em ${titulo}` : "peças"}
             </label>
-            <IconeBusca className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-nevoa" />
+            <IconeBusca className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-nevoa sm:left-5" />
             <input
               id="rota-busca-vitrine"
               name="q"
@@ -115,11 +115,11 @@ export default function Vitrine({
               defaultValue={filtros.q}
               maxLength={80}
               placeholder={categoriaAtual ? `Buscar em ${titulo}` : "Buscar por nome: calça, short, vestido…"}
-              className="h-14 w-full rounded-full border border-white/10 bg-asfalto/60 pl-14 pr-32 text-base text-creme backdrop-blur-md placeholder:text-nevoa focus:border-cobre/60 focus:outline-none"
+              className="h-14 w-full rounded-full border border-white/10 bg-asfalto/60 pl-12 pr-24 text-base sm:pl-14 sm:pr-32 text-creme backdrop-blur-md placeholder:text-nevoa focus:border-cobre/60 focus:outline-none"
             />
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 h-11 -translate-y-1/2 rounded-full bg-cobre px-5 text-sm font-medium text-asfalto hover:bg-cobre-claro"
+              className="absolute right-1.5 top-1/2 h-11 -translate-y-1/2 rounded-full bg-cobre px-4 text-sm font-medium text-asfalto hover:bg-cobre-claro sm:px-5"
             >
               Buscar
             </button>
@@ -146,7 +146,7 @@ export default function Vitrine({
               ))}
             </ul>
           </nav>
-          <div className="flex items-center justify-between gap-4 md:justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 md:justify-end">
             <Link
               href={urlVitrine(caminho, { ...filtros, pronta: !filtros.pronta })}
               aria-pressed={filtros.pronta}

@@ -124,19 +124,23 @@ export default function LeadModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 p-4"
       onClick={onClose}
     >
+      {/* No celular o vh é medido com a barra do navegador recolhida: com a
+          barra à mostra, 90vh passava da área visível e cortava o topo (✕) e o
+          rodapé (Salvar). max-h-full segue o overlay, que é a área visível. */}
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl"
+        className="max-h-full w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl lg:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-zinc-200 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">{lead.name}</h2>
+        <div className="flex items-start justify-between border-b border-zinc-200 px-4 py-4 sm:px-6">
+          <div className="min-w-0">
+            <h2 className="break-words text-lg font-semibold tracking-tight">{lead.name}</h2>
             <p className="mt-0.5 text-sm text-zinc-500">{lead.city}/{lead.state}</p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700" aria-label="Fechar">✕</button>
+          {/* Área de toque de ~40px no celular; a margem negativa mantém o ✕ no lugar. */}
+          <button onClick={onClose} className="-m-2 rounded-md p-3 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 sm:m-0 sm:p-1" aria-label="Fechar">✕</button>
         </div>
 
-        <div className="space-y-5 px-6 py-5">
+        <div className="space-y-5 px-4 py-5 sm:px-6">
           {/* Info do Maps (read-only) */}
           <div className="rounded-lg bg-zinc-50 p-4 text-sm">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -149,12 +153,12 @@ export default function LeadModal({
 
           {/* Bloco da mensagem de WhatsApp + IA */}
           <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-zinc-900">Primeiro contato (WhatsApp)</h3>
               <button
                 onClick={generateMessage}
                 disabled={generating || lead.optOut}
-                className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="w-full rounded-md bg-indigo-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-1.5 sm:text-xs"
               >
                 {generating ? "Gerando..." : message ? "Regerar com IA" : "Gerar com IA"}
               </button>
@@ -175,16 +179,16 @@ export default function LeadModal({
               onChange={(e) => setMessage(e.target.value)}
               rows={7}
               placeholder='Clique em "Gerar com IA" ou escreva manualmente...'
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
-            <div className="mt-2 flex items-center justify-between">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-zinc-500">
                 {message.length} caracteres
               </span>
               <button
                 onClick={openWhatsApp}
                 disabled={!canSendWhatsApp}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 sm:w-auto sm:py-2"
               >
                 Abrir no WhatsApp
               </button>
@@ -193,14 +197,16 @@ export default function LeadModal({
 
           {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-          {/* Edicao dos campos */}
+          {/* Edicao dos campos. Campos em text-base no celular (aqui e na
+              mensagem acima): abaixo de 16px o iPhone dá zoom ao focar e a
+              página fica rolando de lado. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Nome do responsável">
               <input
                 type="text"
                 value={form.responsibleName}
                 onChange={(e) => setForm({ ...form, responsibleName: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
                 placeholder="Quem você fala diretamente"
               />
             </Field>
@@ -210,7 +216,7 @@ export default function LeadModal({
                 value={form.foundedAt}
                 onChange={(e) => setForm({ ...form, foundedAt: e.target.value })}
                 placeholder="ex.: 2015 ou 2015-03-10"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
             </Field>
             <Field label="WhatsApp (E.164, ex: 5583999...)">
@@ -218,7 +224,7 @@ export default function LeadModal({
                 type="text"
                 value={form.whatsapp}
                 onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
             </Field>
             <Field label="Instagram (@)">
@@ -226,14 +232,14 @@ export default function LeadModal({
                 type="text"
                 value={form.instagram}
                 onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
             </Field>
             <Field label="Tipo de loja">
               <select
                 value={form.storeType}
                 onChange={(e) => setForm({ ...form, storeType: e.target.value as StoreTypeValue })}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               >
                 {STORE_TYPES.map((t) => (
                   <option key={t} value={t}>{STORE_TYPE_LABEL[t]}</option>
@@ -244,7 +250,7 @@ export default function LeadModal({
               <select
                 value={form.businessKind}
                 onChange={(e) => setForm({ ...form, businessKind: e.target.value as BusinessKindValue })}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               >
                 {BUSINESS_KINDS.map((k) => (
                   <option key={k} value={k}>{BUSINESS_KIND_LABEL[k]}</option>
@@ -255,7 +261,7 @@ export default function LeadModal({
               <select
                 value={form.funnelStage}
                 onChange={(e) => setForm({ ...form, funnelStage: e.target.value as FunnelStageValue })}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               >
                 {FUNNEL_STAGES.map((s) => (
                   <option key={s} value={s}>{FUNNEL_STAGE_LABEL[s]}</option>
@@ -269,12 +275,12 @@ export default function LeadModal({
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={3}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               placeholder="Anotações sobre essa loja..."
             />
           </Field>
 
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
+          <label className="flex items-center gap-2 py-2.5 text-sm text-zinc-700 sm:py-0">
             <input
               type="checkbox"
               checked={form.optOut}
@@ -285,12 +291,14 @@ export default function LeadModal({
           </label>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
-          <button onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">Cancelar</button>
+        {/* No celular o formulário fica bem mais alto que a tela: o rodapé gruda
+            embaixo pra "Salvar" não sumir no fim da rolagem. No desktop, como antes. */}
+        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-zinc-200 bg-white px-4 py-3 sm:px-6 sm:py-4 lg:static">
+          <button onClick={onClose} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 sm:py-2">Cancelar</button>
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:py-2"
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
